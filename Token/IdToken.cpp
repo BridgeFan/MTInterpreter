@@ -3,11 +3,20 @@
 //
 
 #include "IdToken.h"
+#include "../ErrorHandler.h"
 
-void IdToken::addChar(char c) {
-	raw+=c;
+bool IdToken::addChar(char c) {
+	if (isLetter(c) || isDigit(c))
+		raw += c;
+	else if (isDefined(c) || isWhite(c))
+		return true;
+	else {
+		//error
+		ErrorHandler::addError(ErrorType::ScanerError,line, column, raw, " unexpected character in literal");
+	}
+	return false;
 }
 
 IdToken::IdToken(int line, int column, const std::string &raw) : Token(line, column, raw) {
-	type = TokenType::Id;
+	type = TokenType::Id_;
 }

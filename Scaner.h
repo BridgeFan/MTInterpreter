@@ -13,10 +13,12 @@ class Scaner {
 private:
 	int line=0;
 	int col=0;
+	char actualChar='\0';
 	std::unique_ptr<DataSource> source;
+	void getNextChar();
 public:
 	explicit Scaner(std::unique_ptr<DataSource>&& source);
-	std::shared_ptr<Token> getNextToken();
+	std::unique_ptr<Token> getNextToken();
 	[[nodiscard]] bool hasEnded() const;
 };
 
