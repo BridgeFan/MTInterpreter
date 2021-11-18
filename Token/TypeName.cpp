@@ -8,7 +8,7 @@ bool TypeName::addChar(char c) {
 	return true;
 }
 
-TypeName::TypeName(int line, int column, TypeNameType subtype): Token(line, column, "") {
+TypeName::TypeName(int line, int column, TypeNameType subtype): Token(line, column) {
 	type = TokenType::TypeName_;
 	this->subtype = subtype;
 }

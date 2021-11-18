@@ -4,22 +4,19 @@
 #include "DataSource/FileDataSource.h"
 #include "DataSource/StringDataSource.h"
 #include "Scaner.h"
+#include "Token/ErrorToken.h"
+#include "ErrorHandler.h"
 
 int main(int argc, char** argv) {
 	std::unique_ptr<DataSource> dataSource;
 	if(argc<2) {
 		std::cout << "Usage:\n";
-		std::cout << "scaner-test: launch unit tests for scaner\n";
 		std::cout << "file: provide file path in second parameter\n";
 		std::cout << "str: provide string in second parameter\n";
 		return 0;
 	}
 	else {
-		if(argv[1]==std::string("scaner-test")) {
-			return 0;
-			//launch scaner tests
-		}
-		else if(argv[1]==std::string("file")) {
+		if(argv[1]==std::string("file")) {
 			if(argc<2) {
 				std::cout << "File path not provided. Exit program\n";
 				return 0;
@@ -39,6 +36,11 @@ int main(int argc, char** argv) {
 		}
 	}
 	Scaner scaner(std::move(dataSource));
+	auto tokenPtr = scaner.getNextToken();
+	if(tokenPtr->getType()==Error_) {
+		auto* token = dynamic_cast<ErrorToken*>(tokenPtr.get());
+		ErrorHandler::addScanerError(*token);
+	}
 	std::cout << "Hello, World!" << std::endl;
 	return 0;
 }

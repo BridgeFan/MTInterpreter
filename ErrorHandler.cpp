@@ -5,15 +5,20 @@
 #include <iostream>
 #include "ErrorHandler.h"
 
-int ErrorHandler::errorCounter = 0;
-
-void ErrorHandler::addError(ErrorType type, int line, int col, const std::string& raw, const std::string& desc) {
-	std::cerr << "Error in line " + std::to_string(line) + ", column " + std::to_string(col) + " (" + raw + ")\n";
-	std::cerr << "Error description: " << desc << "\n";
-	errorCounter++;
-	exit(1);
+int ErrorHandler::getErrorSize() {
+	return errorInfo.size();
 }
 
-int ErrorHandler::getErrorSize() const {
-	return errorCounter;
+void ErrorHandler::addScanerError(ErrorToken &token) {
+	//TODO
+}
+
+void ErrorHandler::showErrors() {
+	if(getErrorSize()==0) {
+		std::cout << "No errors\n";
+	}
+	std::cout << "Errors found: "+ std::to_string(getErrorSize())+"\n";
+	for(const std:: string& s: errorInfo) {
+		std::cout << s << "\n";
+	}
 }

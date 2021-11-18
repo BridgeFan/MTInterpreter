@@ -8,7 +8,7 @@ bool MultOp::addChar(char c) {
 	return true;
 }
 
-MultOp::MultOp(int line, int column, MultOpType type): Token(line, column, "") {
+MultOp::MultOp(int line, int column, MultOpType type): Token(line, column) {
 	this->type = MultOp_;
 	subtype = type;
 }

@@ -8,7 +8,7 @@ bool Assign::addChar(char c) {
 	return true;
 }
 
-Assign::Assign(int line, int column, AssignType subtype): Token(line, column, "") {
+Assign::Assign(int line, int column, AssignType subtype): Token(line, column) {
 	type = TokenType::Assign_;
 	this->subtype = subtype;
 }

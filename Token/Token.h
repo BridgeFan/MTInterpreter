@@ -23,19 +23,24 @@ enum TokenType: uint16_t {
 	BlockBegin_,
 	BlockEnd_,
 	Logic_,
+	Conversion_,
+	String_,
+	Number_,
+	Error_,
 };
 class Token {
 protected:
 	int line;
 	int column;
-	std::string raw;
 	TokenType type;
 public:
+	static constexpr int maxLength = 128; //maximum length of word
 	static bool isLetter(char a);
 	static bool isDigit(char a);
 	static bool isWhite(char a);
 	static bool isDefined(char a);
-	Token(int line, int column, std::string raw);
+	static bool isStringCompatible(char a);
+	Token(int line, int column);
 	TokenType getType() const;
 	const std::string& getRaw() const;
 	int getLine() const;

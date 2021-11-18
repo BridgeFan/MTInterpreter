@@ -7,7 +7,7 @@ bool RelOp::addChar(char c) {
 	return true;
 }
 
-RelOp::RelOp(int line, int column, RelOpType type): Token(line, column, "") {
+RelOp::RelOp(int line, int column, RelOpType type): Token(line, column) {
 	this->type = RelOp_;
 	subtype = type;
 }

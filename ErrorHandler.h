@@ -7,16 +7,15 @@
 
 #include <cstdint>
 #include <string>
-
-enum ErrorType: uint16_t {
-	ScanerError
-};
+#include <vector>
+#include "Token/ErrorToken.h"
 
 class ErrorHandler {
-	static int errorCounter;
+	static std::vector<std::string> errorInfo;
 public:
 	static int getErrorSize();
-	static void addError(ErrorType type, int line, int col, const std::string& raw, const std::string& desc);
+	static void addScanerError(ErrorToken& token);
+	static void showErrors();
 };
 
 

@@ -39,6 +39,13 @@ bool Token::isWhite(char a) {
 }
 
 bool Token::isDefined(char a) {
+	const std::string defined="();.,!-=+*/%|&{}";
+	return defined.find(a) != std::string::npos;
+}
+
+bool Token::isStringCompatible(char a) {
+	if(a<32 || a==127)
+		return false;
 	const std::string defined="();,!-=+*/%|&{}";
 	return defined.find(a) != std::string::npos;
 }
@@ -47,7 +54,7 @@ bool If::addChar(char c) {
 	return true;
 }
 
-If::If(int line, int column): Token(line, column, "if") {
+If::If(int line, int column): Token(line, column) {
 	type=TokenType::If_;
 }
 
@@ -55,7 +62,7 @@ bool While::addChar(char c) {
 	return true;
 }
 
-While::While(int line, int column): Token(line, column, "while") {
+While::While(int line, int column): Token(line, column) {
 	type=TokenType::While_;
 }
 
@@ -63,11 +70,11 @@ bool For::addChar(char c) {
 	return true;
 }
 
-For::For(int line, int column): Token(line, column, "while") {
+For::For(int line, int column): Token(line, column) {
 	type=TokenType::For_;
 }
 
-Else::Else(int line, int column): Token(line, column, "else") {
+Else::Else(int line, int column): Token(line, column) {
 	type=TokenType::Else_;
 }
 
@@ -79,7 +86,7 @@ bool ParBegin::addChar(char c) {
 	return true;
 }
 
-ParBegin::ParBegin(int line, int column): Token(line, column, "(") {
+ParBegin::ParBegin(int line, int column): Token(line, column) {
 	type = ParBegin_;
 }
 
@@ -87,7 +94,7 @@ bool ParEnd::addChar(char c) {
 	return true;
 }
 
-ParEnd::ParEnd(int line, int column): Token(line, column, ")") {
+ParEnd::ParEnd(int line, int column): Token(line, column) {
 	type = ParEnd_;
 }
 
@@ -95,7 +102,7 @@ bool End::addChar(char c) {
 	return true;
 }
 
-End::End(int line, int column): Token(line, column, ";") {
+End::End(int line, int column): Token(line, column) {
 	type = End_;
 }
 
@@ -103,7 +110,7 @@ bool Comma::addChar(char c) {
 	return true;
 }
 
-Comma::Comma(int line, int column): Token(line, column, ",") {
+Comma::Comma(int line, int column): Token(line, column) {
 	type = Comma_;
 }
 
@@ -111,7 +118,7 @@ bool NegOp::addChar(char c) {
 	return true;
 }
 
-NegOp::NegOp(int line, int column): Token(line, column, "!") {
+NegOp::NegOp(int line, int column): Token(line, column) {
 	type = NegOp_;
 }
 
@@ -119,7 +126,7 @@ bool Minus::addChar(char c) {
 	return true;
 }
 
-Minus::Minus(int line, int column): Token(line, column, "-") {
+Minus::Minus(int line, int column): Token(line, column) {
 	type = Minus_;
 }
 
@@ -127,7 +134,7 @@ bool Add::addChar(char c) {
 	return true;
 }
 
-Add::Add(int line, int column): Token(line, column, "+") {
+Add::Add(int line, int column): Token(line, column) {
 	type = Add_;
 }
 
@@ -135,7 +142,7 @@ bool BlockBegin::addChar(char c) {
 	return true;
 }
 
-BlockBegin::BlockBegin(int line, int column): Token(line, column, "{") {
+BlockBegin::BlockBegin(int line, int column): Token(line, column) {
 	type = BlockBegin_;
 }
 
@@ -143,7 +150,7 @@ bool BlockEnd::addChar(char c) {
 	return true;
 }
 
-BlockEnd::BlockEnd(int line, int column): Token(line, column, "}") {
+BlockEnd::BlockEnd(int line, int column): Token(line, column) {
 	type = BlockEnd_;
 }
 
@@ -151,6 +158,6 @@ bool Return::addChar(char c) {
 	return true;
 }
 
-Return::Return(int line, int column): Token(line, column, "return") {
+Return::Return(int line, int column): Token(line, column) {
 	type = Return_;
 }
