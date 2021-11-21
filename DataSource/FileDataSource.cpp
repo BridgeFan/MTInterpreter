@@ -26,3 +26,7 @@ FileDataSource::FileDataSource(const std::string &path) {
 bool FileDataSource::hasEnded() const {
 	return closed;
 }
+
+FileDataSource::~FileDataSource() {
+	file.close();
+}
