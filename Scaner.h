@@ -18,7 +18,6 @@ private:
 	std::string internal;
 	std::unique_ptr<DataSource> source;
 	void getNextChar();
-	bool internalLoop(const std::string& str);
 	std::unique_ptr<Token> processString();
 	std::unique_ptr<Token> processId();
 	std::unique_ptr<Token> processNumber(int64_t value, NumberState nState);

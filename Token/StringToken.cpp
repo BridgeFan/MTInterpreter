@@ -12,44 +12,45 @@ bool StringToken::addChar(char c) {
 		switch(c) {
 			case '\\':
 				value+='\\';
-				return false;
+				break;
 			case '\'':
 				value+='\'';
-				return false;
+				break;
 			case '\"':
 				value+='\"';
-				return false;
+				break;
 			case '\?':
 				value+='\?';
-				return false;
+				break;
 			case 'a':
 				value+='\a';
-				return false;
+				break;
 			case 'b':
 				value+='\b';
-				return false;
+				break;
 			case 'f':
 				value+='\f';
-				return false;
+				break;
 			case 'n':
 				value+='\n';
-				return false;
+				break;
 			case 'r':
 				value+='\r';
-				return false;
+				break;
 			case 't':
 				value+='\t';
-				return false;
+				break;
 			case 'v':
 				value+='\v';
-				return false;
+				break;
 			default:
 				value+=c;
 				throw std::exception();
-
 		}
+		isSpecialEnter=false;
+		return false;
 	}
-	if (c=='"')
+	if (c=='\"')
 		return true;
 	if(c=='\\') {
 		isSpecialEnter=true;

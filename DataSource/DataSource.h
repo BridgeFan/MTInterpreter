@@ -2,7 +2,7 @@
 
 #include <string>
 
-constexpr char eof = std::char_traits<char>::eof();
+constexpr char eof = std::char_traits<char>::eof(); //return eof if there is no more data in data source
 
 class DataSource {
 public:

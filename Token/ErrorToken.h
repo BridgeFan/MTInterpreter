@@ -19,6 +19,7 @@ class ErrorToken: public Token {
 public:
 	ErrorToken(int line, int column, const std::string &raw, TokenType expectedType, ErrorType eType=unexpectedCharacter);
 	TokenType getExpected() const {return expectedType;}
+	ErrorType getErrorType() const {return errorType;}
 	const std::string& getValue() const {return value;}
 	bool addChar(char c) override;
 };

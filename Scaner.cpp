@@ -45,7 +45,9 @@ std::unique_ptr<Token> Scaner::processString() {
 }
 
 void Scaner::checkSpecialIds(std::unique_ptr<Token>& token) {
-	std::string raw=token->getRaw();
+	if(typeid(*token)!=typeid(IdToken))
+		return;
+	std::string raw = dynamic_cast<IdToken *>(token.get())->getValue();
 	//check special keywords
 	if(raw=="if") {
 		token.reset(new If(token->getLine(),token->getColumn()));
@@ -99,6 +101,8 @@ std::unique_ptr<Token> Scaner::processNumber(int64_t value, NumberState nState) 
 	std::unique_ptr<Token> token(new Number(line, col-1, value, nState));
 	while(true) {
 		getNextChar();
+		if(actualChar==eof)
+			break;
 		try {
 			if (token->addChar(actualChar))
 				break;
@@ -110,19 +114,7 @@ std::unique_ptr<Token> Scaner::processNumber(int64_t value, NumberState nState) 
 			return std::unique_ptr<Token>(new ErrorToken(token->getLine(),token->getColumn(),internal,token->getType()));
 		}
 	}
-	checkSpecialIds(token);
 	return token;
-}
-
-
-bool Scaner::internalLoop(const std::string &str) {
-	for(char a: str) {
-		getNextChar();
-		if(actualChar!=a)
-			return false; //it means that there should be an error
-	}
-	actualChar='\0';
-	return true;
 }
 
 std::unique_ptr<Token> Scaner::getNextToken() {
@@ -135,6 +127,8 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 	while(Token::isWhite(actualChar)) {
 		getNextChar();
 	}
+	if(hasEnded() && actualChar==eof)
+		return {};
 	internal="";
 	int retLine=line;
 	int retCol=col;
@@ -178,12 +172,6 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 			if(actualChar=='=') {
 				actualChar='\0';
 				return std::unique_ptr<Token>(new Assign(retLine, retCol, minusAssign));
-			}
-			else if(Token::isDigit(actualChar)) {
-				return processNumber(-(actualChar-'0'), minus);
-			}
-			else if(actualChar=='.') {
-				return processNumber(0, minus_divide);
 			}
 			else
 				return std::unique_ptr<Token>(new Minus(retLine, retCol));
@@ -292,31 +280,16 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 			}
 		}
 		if(actualChar=='(') {
-			getNextChar();
-			if(actualChar=='i') {
-				if(internalLoop("nt)"))
-					return std::unique_ptr<Token>(new Conversion(retLine, retCol, toInt));
-				else
-					return std::unique_ptr<Token>(new ErrorToken(retLine, retCol, internal, Conversion_));
-			}
-			else if(actualChar=='d') {
-				if(internalLoop("ouble)"))
-					return std::unique_ptr<Token>(new Conversion(retLine, retCol, toDouble));
-				else
-					return std::unique_ptr<Token>(new ErrorToken(retLine, retCol, internal, Conversion_));
-			}
-			else {
-				return std::unique_ptr<Token>(new ParBegin(retLine,retCol));
-			}
+			actualChar='0';
+			return std::unique_ptr<Token>(new ParBegin(retLine,retCol));
 		}
 		if(actualChar==')') {
 			actualChar='\0';
 			return std::unique_ptr<Token>(new ParEnd(retLine,retCol));
 		}
-
-		if(actualChar=='"') {
-			return processString();
-		}
+	}
+	if(actualChar=='\"') {
+		return processString();
 	}
 	if(Token::isLetter(actualChar)) {
 		return processId();
@@ -332,5 +305,5 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 Scaner::Scaner(std::unique_ptr<DataSource> &&source) : source(std::move(source)) {}
 
 bool Scaner::hasEnded() const {
-	return source->hasEnded();
+	return source->hasEnded() && (actualChar=='\0' || actualChar==eof);
 }

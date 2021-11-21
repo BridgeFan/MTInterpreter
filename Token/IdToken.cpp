@@ -4,13 +4,14 @@
 
 #include "IdToken.h"
 #include "../ErrorHandler.h"
+#include "../DataSource/DataSource.h"
 
 bool IdToken::addChar(char c) {
 	if(value.length()>=Token::maxLength)
 		throw std::bad_exception();
 	if (isLetter(c) || isDigit(c))
 		value += c;
-	else if (isDefined(c) || isWhite(c))
+	else if (isDefined(c) || isWhite(c) || c==eof)
 		return true;
 	else
 		throw std::exception();

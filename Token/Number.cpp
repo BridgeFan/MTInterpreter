@@ -12,9 +12,9 @@ Number::Number(int line, int column, int64_t val, NumberState state) : Token(lin
 }
 
 std::variant<int64_t, double> Number::getValue() const {
-	if(state==plus || state==minus)
+	if(state==plus)
 		return value1;
-	return (double)value1+(double)value2/(double)std::pow(10.0,value2size)
+	return (double)value1+(double)value2/(double)std::pow(10.0,value2size);
 }
 
 bool Number::addChar(char c) {
@@ -24,22 +24,20 @@ bool Number::addChar(char c) {
 				state=plus_divide;
 				return false;
 			}
-			else if(state==minus) {
-				state=minus_divide;
-				return false;
-			}
 			else {
 				throw std::exception();
 			}
 		}
+		else if(isLetter(c))
+			throw std::exception();
 		else
 			return true;
 	}
-	int64_t a='c'-0;
-	if((state==plus || state==minus) && std::abs(value1)>(INT64_MAX-1)/10) {
+	int64_t a=c-'0';
+	if((state==plus) && value1>(INT64_MAX-1)/10) {
 		throw std::bad_exception();
 	}
-	else if((state==plus_divide || state==minus_divide) && std::abs(value2)>(INT64_MAX-1)/10) {
+	else if(state==plus_divide && std::abs(value2)>(INT64_MAX-1)/10) {
 		//ignore all next digits, because they have no signifance
 		return false;
 	}
@@ -48,18 +46,9 @@ bool Number::addChar(char c) {
 			value1*=10;
 			value1+=a;
 			return false;
-		case minus:
-			value1*=10;
-			value1-=a;
-			return false;
 		case plus_divide:
 			value2*=10;
 			value2+=a;
-			value2size++;
-			return false;
-		case minus_divide:
-			value2*=10;
-			value2-=a;
 			value2size++;
 			return false;
 	}

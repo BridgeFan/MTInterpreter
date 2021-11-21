@@ -10,9 +10,7 @@
 
 enum NumberState: uint16_t {
 	plus,
-	minus,
 	plus_divide,
-	minus_divide
 };
 
 class Number: public Token {

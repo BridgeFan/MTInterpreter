@@ -8,6 +8,7 @@
 #include "ErrorHandler.h"
 
 int main(int argc, char** argv) {
+	//TODO: Conversion token will be created in parser, not in scaner to reduce wrong interpretation
 	std::unique_ptr<DataSource> dataSource;
 	if(argc<2) {
 		std::cout << "Usage:\n";
@@ -41,6 +42,6 @@ int main(int argc, char** argv) {
 		auto* token = dynamic_cast<ErrorToken*>(tokenPtr.get());
 		ErrorHandler::addScanerError(*token);
 	}
-	std::cout << "Hello, World!" << std::endl;
+	ErrorHandler::showErrors();
 	return 0;
 }

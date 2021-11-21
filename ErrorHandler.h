@@ -10,6 +10,8 @@
 #include <vector>
 #include "Token/ErrorToken.h"
 
+
+
 class ErrorHandler {
 	static std::vector<std::string> errorInfo;
 public:

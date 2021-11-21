@@ -4,7 +4,9 @@
 #include "Token.h"
 #include <utility>
 
-Token::Token(int line, int column, std::string raw): line(line), column(column), raw(std::move(raw)) {}
+const std::string defined="();.,!-=+*/%|&{}<>";
+
+Token::Token(int line, int column): line(line), column(column) {}
 
 TokenType Token::getType() const {
 	return type;
@@ -12,10 +14,6 @@ TokenType Token::getType() const {
 
 void Token::finish() {
 
-}
-
-const std::string &Token::getRaw() const {
-	return raw;
 }
 
 int Token::getColumn() const {
@@ -39,15 +37,11 @@ bool Token::isWhite(char a) {
 }
 
 bool Token::isDefined(char a) {
-	const std::string defined="();.,!-=+*/%|&{}";
 	return defined.find(a) != std::string::npos;
 }
 
 bool Token::isStringCompatible(char a) {
-	if(a<32 || a==127)
-		return false;
-	const std::string defined="();,!-=+*/%|&{}";
-	return defined.find(a) != std::string::npos;
+	return (a>=32 && a!=127);
 }
 
 bool If::addChar(char c) {
