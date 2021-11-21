@@ -42,6 +42,6 @@ int main(int argc, char** argv) {
 		auto* token = dynamic_cast<ErrorToken*>(tokenPtr.get());
 		ErrorHandler::addScanerError(*token);
 	}
-	ErrorHandler::showErrors();
+	ErrorHandler::showErrors(std::cout);
 	return 0;
 }

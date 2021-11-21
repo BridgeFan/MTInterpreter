@@ -54,13 +54,17 @@ void ErrorHandler::addScanerError(ErrorToken &token) {
 	errorInfo.push_back(str);
 }
 
-void ErrorHandler::showErrors() {
+void ErrorHandler::showErrors(std::ostream& out) {
 	if(getErrorSize()==0) {
-		std::cout << "No errors\n";
+		out << "No errors\n";
 		return;
 	}
-	std::cout << "Errors found: "+ std::to_string(ErrorHandler::getErrorSize())+"\n";
+	out << "Errors found: "+ std::to_string(ErrorHandler::getErrorSize())+"\n";
 	for(const std:: string& s: errorInfo) {
-		std::cout << s << "\n";
+		out << s << "\n";
 	}
+}
+
+void ErrorHandler::clear() {
+	errorInfo.clear();
 }

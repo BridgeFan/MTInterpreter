@@ -14,6 +14,7 @@
 #include "../Token/LogicOp.h"
 #include "../Token/Conversion.h"
 #include "../Token/ErrorToken.h"
+#include "../ErrorHandler.h"
 
 TEST(DataSourceTest, File) {
 	DataSource* dataSource = new FileDataSource("example.txt");
@@ -471,7 +472,51 @@ TEST(ScanerTest, ErrorStringUnfinished) {
 	auto errorPtr = dynamic_cast<ErrorToken*>(tokenPtr.get());
 	ASSERT_EQ(errorPtr->getExpected(), TokenType::String_);
 	ASSERT_EQ(errorPtr->getErrorType(), ErrorType::unexpectedCharacter);
-	ASSERT_EQ(errorPtr->getValue(), "\"aa\xFF");
+	ASSERT_EQ(errorPtr->getValue(), "aa\xFF");
+}
+
+TEST(ScanerTest, ColumnCheck) {
+	Scaner scaner = initScaner(" a");
+	auto tokenPtr = scaner.getNextToken();
+	ASSERT_NE(tokenPtr,nullptr);
+	ASSERT_EQ(tokenPtr->getType(), TokenType::Id_);
+	ASSERT_EQ(tokenPtr->getColumn(), 2);
+}
+
+TEST(ScanerTest, LineCheck) {
+	Scaner scaner = initScaner("\na");
+	auto tokenPtr = scaner.getNextToken();
+	ASSERT_NE(tokenPtr,nullptr);
+	ASSERT_EQ(tokenPtr->getType(), TokenType::Id_);
+	ASSERT_EQ(tokenPtr->getLine(), 2);
+}
+
+TEST(ErrorHandlerTest, AddErrorsTest) {
+	ErrorHandler handler;
+	ErrorToken token(1,1,"_",TokenType::Error_);
+	handler.addScanerError(token);
+	handler.addScanerError(token);
+	handler.addScanerError(token);
+	ASSERT_EQ(handler.getErrorSize(),3);
+}
+
+TEST(ErrorHandlerTest, ShowNoErrorTest) {
+	ErrorHandler::clear();
+	std::ostringstream str;
+	ErrorHandler::showErrors(str);
+	std::string string = str.str();
+	ASSERT_EQ(string,"No errors\n");
+}
+
+TEST(ErrorHandlerTest, ShowErrorTest) {
+	ErrorHandler::clear();
+	ErrorToken token(1,1,"_",TokenType::Error_);
+	ErrorHandler::addScanerError(token);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),1);
+	std::ostringstream str;
+	ErrorHandler::showErrors(str);
+	std::string string = str.str();
+	ASSERT_TRUE(string.find("Errors found: 1")!=std::string::npos);
 }
 
 int main(int argc, char** argv) {

@@ -17,7 +17,8 @@ class ErrorHandler {
 public:
 	static int getErrorSize();
 	static void addScanerError(ErrorToken& token);
-	static void showErrors();
+	static void showErrors(std::ostream& out);
+	static void clear();
 };
 
 

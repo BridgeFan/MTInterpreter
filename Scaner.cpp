@@ -20,7 +20,7 @@ void Scaner::getNextChar() {
 	internal+=actualChar;
 	if(actualChar=='\n') {
 		line++;
-		col=0;
+		col=1;
 	}
 	else
 		col++;

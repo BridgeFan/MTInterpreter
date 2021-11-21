@@ -12,8 +12,8 @@
 
 class Scaner {
 private:
-	int line=0;
-	int col=0;
+	int line=1;
+	int col=1;
 	char actualChar='\0';
 	std::string internal;
 	std::unique_ptr<DataSource> source;
