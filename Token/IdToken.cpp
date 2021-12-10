@@ -5,6 +5,7 @@
 #include "IdToken.h"
 #include "../ErrorHandler.h"
 #include "../DataSource/DataSource.h"
+#include "Util.h"
 
 bool IdToken::addChar(char c) {
 	if(value.length()>=Util::maxLength)

@@ -4,9 +4,10 @@
 
 #include "StringToken.h"
 #include "../ErrorHandler.h"
+#include "Util.h"
 
 bool StringToken::addChar(char c) {
-	if(value.length()>=Token::maxLength)
+	if(value.length()>=Util::maxLength)
 		throw std::bad_exception();
 	if(isSpecialEnter) {
 		switch(c) {
@@ -56,7 +57,7 @@ bool StringToken::addChar(char c) {
 		isSpecialEnter=true;
 		return false;
 	}
-	if (isStringCompatible(c)) {
+	if (Util::isStringCompatible(c)) {
 		value += c;
 		return false;
 	}

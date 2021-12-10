@@ -5,6 +5,7 @@
 #include <cmath>
 #include "Number.h"
 #include "../ErrorHandler.h"
+#include "Util.h"
 
 Number::Number(int line, int column, int64_t val, NumberState state) : Token(Number_, line, column), state(state) {
 	value1=val;
@@ -17,7 +18,7 @@ std::variant<int64_t, double> Number::getValue() const {
 }
 
 bool Number::addChar(char c) {
-	if(!isDigit(c)) {
+	if(!Util::isDigit(c)) {
 		if(c=='.') {
 			if(state==plus) {
 				state=plus_divide;
@@ -27,7 +28,7 @@ bool Number::addChar(char c) {
 				throw std::exception();
 			}
 		}
-		else if(isLetter(c))
+		else if(Util::isLetter(c))
 			throw std::exception();
 		else
 			return true;

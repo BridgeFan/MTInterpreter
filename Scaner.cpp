@@ -3,6 +3,8 @@
 //
 
 #include "Scaner.h"
+
+#include <memory>
 #include "Token/IdToken.h"
 #include "Token/LoopMod.h"
 #include "Token/TypeName.h"
@@ -14,6 +16,7 @@
 #include "Token/Conversion.h"
 #include "Token/StringToken.h"
 #include "Token/ErrorToken.h"
+#include "Token/Util.h"
 
 void Scaner::getNextChar() {
 	actualChar =source->getNextChar();
@@ -50,31 +53,31 @@ void Scaner::checkSpecialIds(std::unique_ptr<Token>& token) {
 	std::string raw = dynamic_cast<IdToken *>(token.get())->getValue();
 	//check special keywords
 	if(raw=="if") {
-		token.reset(new Token(TokenType::If_, token->getLine(),token->getColumn()));
+		token = std::make_unique<Token>(TokenType::If_, token->getLine(),token->getColumn());
 	}
 	if(raw=="else") {
-		token.reset(new Token(TokenType::Else_, token->getLine(),token->getColumn()));
+		token = std::make_unique<Token>(TokenType::Else_, token->getLine(),token->getColumn());
 	}
 	if(raw=="while") {
-		token.reset(new Token(TokenType::While_, token->getLine(),token->getColumn()));
+		token = std::make_unique<Token>(TokenType::While_, token->getLine(),token->getColumn());
 	}
 	if(raw=="for") {
-		token.reset(new Token(TokenType::For_, token->getLine(),token->getColumn()));
+		token = std::make_unique<Token>(TokenType::For_, token->getLine(),token->getColumn());
 	}
 	if(raw=="return") {
-		token.reset(new Token(TokenType::Return_, token->getLine(),token->getColumn()));
+		token = std::make_unique<Token>(TokenType::Return_, token->getLine(),token->getColumn());
 	}
 	if(raw=="continue") {
-		token.reset(new LoopMod(token->getLine(),token->getColumn(),continueMod));
+		token = std::make_unique<LoopMod>(token->getLine(),token->getColumn(),continueMod);
 	}
 	if(raw=="break") {
-		token.reset(new LoopMod(token->getLine(),token->getColumn(),breakMod));
+		token = std::make_unique<LoopMod>(token->getLine(),token->getColumn(),breakMod);
 	}
 	if(raw=="int") {
-		token.reset(new TypeName(token->getLine(),token->getColumn(),intType));
+		token = std::make_unique<TypeName>(token->getLine(),token->getColumn(),intType);
 	}
 	if(raw=="double") {
-		token.reset(new TypeName(token->getLine(),token->getColumn(),doubleType));
+		token = std::make_unique<TypeName>(token->getLine(),token->getColumn(),doubleType);
 	}
 }
 
