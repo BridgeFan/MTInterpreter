@@ -68,7 +68,6 @@ bool StringToken::addChar(char c) {
 	return false;
 }
 
-StringToken::StringToken(int line, int column, const std::string &raw) : Token(line, column) {
+StringToken::StringToken(int line, int column, const std::string &raw) : Token(String_, line, column) {
 	value = raw;
-	type = TokenType::String_;
 }

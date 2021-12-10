@@ -8,8 +8,7 @@ bool ErrorToken::addChar(char c) {
 	return true;
 }
 
-ErrorToken::ErrorToken(int line, int column, const std::string &raw, TokenType expectedType, ErrorType eType): Token(line, column), value(raw) {
-	type = Error_;
+ErrorToken::ErrorToken(int line, int column, const std::string &raw, TokenType expectedType, ErrorType eType): Token(Error_, line, column), value(raw) {
 	errorType = eType;
 	this->expectedType=expectedType;
 }

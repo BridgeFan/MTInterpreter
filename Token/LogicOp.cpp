@@ -7,8 +7,7 @@ bool LogicOp::addChar(char c) {
 	return true;
 }
 
-LogicOp::LogicOp(int line, int column, LogicOpType type): Token(line, column) {
-	this->type = Logic_;
+LogicOp::LogicOp(int line, int column, LogicOpType type): Token(Logic_, line, column) {
 	subtype = type;
 }
 

@@ -6,9 +6,8 @@
 #include "Number.h"
 #include "../ErrorHandler.h"
 
-Number::Number(int line, int column, int64_t val, NumberState state) : Token(line, column), state(state) {
+Number::Number(int line, int column, int64_t val, NumberState state) : Token(Number_, line, column), state(state) {
 	value1=val;
-	type = TokenType::Number_;
 }
 
 std::variant<int64_t, double> Number::getValue() const {

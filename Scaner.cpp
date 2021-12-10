@@ -50,19 +50,19 @@ void Scaner::checkSpecialIds(std::unique_ptr<Token>& token) {
 	std::string raw = dynamic_cast<IdToken *>(token.get())->getValue();
 	//check special keywords
 	if(raw=="if") {
-		token.reset(new If(token->getLine(),token->getColumn()));
+		token.reset(new Token(TokenType::If_, token->getLine(),token->getColumn()));
 	}
 	if(raw=="else") {
-		token.reset(new Else(token->getLine(),token->getColumn()));
+		token.reset(new Token(TokenType::Else_, token->getLine(),token->getColumn()));
 	}
 	if(raw=="while") {
-		token.reset(new While(token->getLine(),token->getColumn()));
+		token.reset(new Token(TokenType::While_, token->getLine(),token->getColumn()));
 	}
 	if(raw=="for") {
-		token.reset(new For(token->getLine(),token->getColumn()));
+		token.reset(new Token(TokenType::For_, token->getLine(),token->getColumn()));
 	}
 	if(raw=="return") {
-		token.reset(new Return(token->getLine(),token->getColumn()));
+		token.reset(new Token(TokenType::Return_, token->getLine(),token->getColumn()));
 	}
 	if(raw=="continue") {
 		token.reset(new LoopMod(token->getLine(),token->getColumn(),continueMod));
@@ -118,13 +118,13 @@ std::unique_ptr<Token> Scaner::processNumber(int64_t value, NumberState nState) 
 }
 
 std::unique_ptr<Token> Scaner::getNextToken() {
-	if(hasEnded())
-		return {};
+	/*if(hasEnded())
+		return {};*/
 	if(actualChar=='\0') {
 		getNextChar();
 	}
 	std::unique_ptr<Token> token;
-	while(Token::isWhite(actualChar)) {
+	while(Util::isWhite(actualChar)) {
 		getNextChar();
 	}
 	if(hasEnded() && actualChar==eof)
@@ -132,22 +132,22 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 	internal="";
 	int retLine=line;
 	int retCol=col;
-	if(Token::isDefined(actualChar)) {
+	/*if(Token::isDefined(actualChar))*/ {
 		if(actualChar==';') {
 			actualChar='\0';
-			return std::unique_ptr<Token>(new End(retLine, retCol));
+			return std::make_unique<Token>(End_, retLine, retCol);
 		}
 		if(actualChar=='{') {
 			actualChar='\0';
-			return std::unique_ptr<Token>(new BlockBegin(retLine, retCol));
+			return std::make_unique<Token>(BlockBegin_, retLine, retCol);
 		}
 		if(actualChar=='}') {
 			actualChar='\0';
-			return std::unique_ptr<Token>(new BlockEnd(retLine, retCol));
+			return std::make_unique<Token>(BlockEnd_, retLine, retCol);
 		}
 		if(actualChar==',') {
 			actualChar='\0';
-			return std::unique_ptr<Token>(new Comma(retLine, retCol));
+			return std::make_unique<Token>(Comma_, retLine, retCol);
 		}
 		if(actualChar=='!') {
 			getNextChar();
@@ -156,7 +156,7 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 				return std::unique_ptr<Token>(new RelOp(retLine, retCol, not_equal));
 			}
 			else
-				return std::unique_ptr<Token>(new NegOp(retLine, retCol));
+				return std::make_unique<Token>(NegOp_, retLine, retCol);
 		}
 		if(actualChar=='+') {
 			getNextChar();
@@ -165,7 +165,7 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 				return std::unique_ptr<Token>(new Assign(retLine, retCol, addAssign));
 			}
 			else
-				return std::unique_ptr<Token>(new Add(retLine, retCol));
+				return std::make_unique<Token>(Add_, retLine, retCol);
 		}
 		if(actualChar=='-') {
 			getNextChar();
@@ -174,7 +174,7 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 				return std::unique_ptr<Token>(new Assign(retLine, retCol, minusAssign));
 			}
 			else
-				return std::unique_ptr<Token>(new Minus(retLine, retCol));
+				return std::make_unique<Token>(Minus_, retLine, retCol);
 		}
 		if(actualChar=='*') {
 			getNextChar();
@@ -281,20 +281,20 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 		}
 		if(actualChar=='(') {
 			actualChar='0';
-			return std::unique_ptr<Token>(new ParBegin(retLine,retCol));
+			return std::make_unique<Token>(ParBegin_, retLine,retCol);
 		}
 		if(actualChar==')') {
 			actualChar='\0';
-			return std::unique_ptr<Token>(new ParEnd(retLine,retCol));
+			return std::make_unique<Token>(ParEnd_, retLine,retCol);
 		}
 	}
 	if(actualChar=='\"') {
 		return processString();
 	}
-	if(Token::isLetter(actualChar)) {
+	if(Util::isLetter(actualChar)) {
 		return processId();
 	}
-	else if(Token::isDigit(actualChar)) {
+	else if(Util::isDigit(actualChar)) {
 		return processNumber(actualChar-'0', plus);
 	}
 	else {

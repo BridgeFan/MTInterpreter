@@ -8,8 +8,7 @@ bool LoopMod::addChar(char c) {
 	return true;
 }
 
-LoopMod::LoopMod(int line, int column, LoopModType subtype): Token(line, column) {
-	type = TokenType::LoopMod_;
+LoopMod::LoopMod(int line, int column, LoopModType subtype): Token(LoopMod_, line, column) {
 	this->subtype = subtype;
 }
 

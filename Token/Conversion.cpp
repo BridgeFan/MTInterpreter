@@ -8,8 +8,7 @@ bool Conversion::addChar(char c) {
 	return true;
 }
 
-Conversion::Conversion(int line, int column, ConversionType type): Token(line, column) {
-	this->type = Conversion_;
+Conversion::Conversion(int line, int column, ConversionType type): Token(Conversion_, line, column) {
 	subtype = type;
 }
 
