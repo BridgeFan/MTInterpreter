@@ -20,7 +20,6 @@ class Assign: public Token {
 	AssignType subtype;
 public:
 	Assign(int line, int column, AssignType subtype);
-	bool addChar(char c) override;
 	AssignType getSubtype() const;
 };
 

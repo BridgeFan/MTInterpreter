@@ -3,9 +3,6 @@
 //
 
 #include "LogicOp.h"
-bool LogicOp::addChar(char c) {
-	return true;
-}
 
 LogicOp::LogicOp(int line, int column, LogicOpType type): Token(Logic_, line, column) {
 	subtype = type;

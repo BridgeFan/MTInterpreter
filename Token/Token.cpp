@@ -19,9 +19,3 @@ int Token::getLine() const {
 	return line;
 }
 
-
-//TO REMOVE
-bool Token::addChar(char c) {
-	return true;
-}
-

@@ -20,8 +20,8 @@ private:
 	void getNextChar();
 	std::unique_ptr<Token> processString();
 	std::unique_ptr<Token> processId();
-	std::unique_ptr<Token> processNumber(int64_t value, NumberState nState);
-	void checkSpecialIds(std::unique_ptr<Token>& token);
+	std::unique_ptr<Token> processNumber();
+	std::unique_ptr<Token> checkSpecialIds(int l, int c, const std::string& val);
 public:
 	explicit Scaner(std::unique_ptr<DataSource>&& source);
 	std::unique_ptr<Token> getNextToken();

@@ -21,7 +21,6 @@ public:
 	TokenType getExpected() const {return expectedType;}
 	ErrorType getErrorType() const {return errorType;}
 	const std::string& getValue() const {return value;}
-	bool addChar(char c) override;
 };
 
 

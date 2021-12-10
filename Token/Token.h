@@ -39,6 +39,5 @@ public:
 	TokenType getType() const;
 	int getLine() const;
 	int getColumn() const;
-	virtual bool addChar(char c);
 	virtual ~Token()=default;
 };

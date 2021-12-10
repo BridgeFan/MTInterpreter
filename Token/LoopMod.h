@@ -15,7 +15,6 @@ class LoopMod: public Token {
 	LoopModType subtype;
 public:
 	LoopMod(int line, int column, LoopModType subtype);
-	bool addChar(char c) override;
 	LoopModType getSubtype() const;
 };
 

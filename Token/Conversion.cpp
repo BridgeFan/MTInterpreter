@@ -4,10 +4,6 @@
 
 #include "Conversion.h"
 
-bool Conversion::addChar(char c) {
-	return true;
-}
-
 Conversion::Conversion(int line, int column, ConversionType type): Token(Conversion_, line, column) {
 	subtype = type;
 }
