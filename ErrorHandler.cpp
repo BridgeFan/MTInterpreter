@@ -6,13 +6,13 @@
 #include <map>
 #include "ErrorHandler.h"
 std::map<TokenType, std::string> tokenTypeNames;
-std::vector<std::string> ErrorHandler::errorInfo;
+std::vector<std::pair<ErrorPlace, std::string> > ErrorHandler::errorInfo;
 
 int ErrorHandler::getErrorSize() {
 	return errorInfo.size();
 }
 
-void ErrorHandler::addScanerError(ErrorToken &token) {
+void ErrorHandler::addError(ErrorPlace place, const ErrorToken& token) {
 	if(tokenTypeNames.empty()) {
 		tokenTypeNames[TokenType::Error_]="Error";
 		tokenTypeNames[TokenType::String_]="String";
@@ -49,9 +49,15 @@ void ErrorHandler::addScanerError(ErrorToken &token) {
 		case ErrorType::overflow:
 			str+="Too great value of token of ";
 			break;
+		case ErrorType::unexpectedEof:
+			str+="Unexpected end of file";
+			break;
+		case ErrorType::unexpectedToken:
+			str+="Expected token of type " + tokenTypeNames[token.getExpected()] + " but got " + token.getValue();
+			break;
 	}
 	str+=tokenTypeNames[token.getExpected()]+" type";
-	errorInfo.push_back(str);
+	errorInfo.emplace_back(place, str);
 }
 
 void ErrorHandler::showErrors(std::ostream& out) {
@@ -60,8 +66,12 @@ void ErrorHandler::showErrors(std::ostream& out) {
 		return;
 	}
 	out << "Errors found: "+ std::to_string(ErrorHandler::getErrorSize())+"\n";
-	for(const std:: string& s: errorInfo) {
-		out << s << "\n";
+	for(auto&& [place, str]: errorInfo) {
+		if(place==ScanerError)
+			out << "Scaner error: ";
+		if(place==ParserError)
+			out << "Parser error: ";
+		out << str << "\n";
 	}
 }
 

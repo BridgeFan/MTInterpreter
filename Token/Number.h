@@ -9,10 +9,11 @@
 #include "Token.h"
 
 class Number: public Token {
-public:
 	std::variant<int64_t, double> value;
+public:
 	Number(int line, int column, int64_t val);
 	Number(int line, int column, double val);
+	const std::variant<int64_t, double>& getValue() const {return value;}
 };
 
 

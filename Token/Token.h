@@ -28,6 +28,8 @@ enum TokenType: uint16_t {
 	String_=22u,
 	Number_=23u,
 	Error_=24u,
+	Void_=25u,
+	_eof = UINT16_MAX
 };
 class Token {
 protected:

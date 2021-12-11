@@ -494,9 +494,9 @@ TEST(ScanerTest, LineCheck) {
 TEST(ErrorHandlerTest, AddErrorsTest) {
 	ErrorHandler handler;
 	ErrorToken token(1,1,"_",TokenType::Error_);
-	handler.addScanerError(token);
-	handler.addScanerError(token);
-	handler.addScanerError(token);
+	handler.addError(ScanerError, token);
+	handler.addError(ScanerError, token);
+	handler.addError(ScanerError, token);
 	ASSERT_EQ(handler.getErrorSize(),3);
 }
 
@@ -511,7 +511,7 @@ TEST(ErrorHandlerTest, ShowNoErrorTest) {
 TEST(ErrorHandlerTest, ShowErrorTest) {
 	ErrorHandler::clear();
 	ErrorToken token(1,1,"_",TokenType::Error_);
-	ErrorHandler::addScanerError(token);
+	ErrorHandler::addError(ScanerError, token);
 	ASSERT_EQ(ErrorHandler::getErrorSize(),1);
 	std::ostringstream str;
 	ErrorHandler::showErrors(str);

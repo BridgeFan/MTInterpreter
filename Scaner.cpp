@@ -37,8 +37,8 @@ void Scaner::getNextChar() {
 std::unique_ptr<Token> Scaner::processString() {
 	int l=line, c=col;
 	std::string val;
+	getNextChar();
 	while(actualChar!='\"') {
-		getNextChar();
 		if(val.length()>=Util::maxLength)
 			return std::unique_ptr<Token>(new ErrorToken(l,c,internal,String_,ErrorType::overflow));
 		if(actualChar=='\\') {
@@ -56,6 +56,7 @@ std::unique_ptr<Token> Scaner::processString() {
 			val += actualChar;
 			return std::unique_ptr<Token>(new ErrorToken(l,c,internal,String_));
 		}
+		getNextChar();
 	}
 	return std::make_unique<StringToken>(l, c-1, val);
 }
@@ -89,13 +90,16 @@ std::unique_ptr<Token> Scaner::checkSpecialIds(int l, int c, const std::string& 
 	if(val=="double") {
 		return std::make_unique<TypeName>(l,c,doubleType);
 	}
+	if(val=="void") { //needed for function definition
+		return std::make_unique<Token>(Void_, l,c);
+	}
 	return std::make_unique<IdToken>(l,c,val);
 }
 
 std::unique_ptr<Token> Scaner::processId() {
 	int l=line;
 	int c=col-1;
-	std::string id;
+	std::string id={actualChar};
 	while(actualChar!=eof) {
 		getNextChar();
 		if(id.length()>=Util::maxLength)
@@ -113,7 +117,7 @@ std::unique_ptr<Token> Scaner::processId() {
 std::unique_ptr<Token> Scaner::processNumber() {
 	int l=line;
 	int c=col-1;
-	int64_t val1 = actualChar-'0';
+	int64_t val1 = 0;
 	int64_t val2 = 0;
 	int val2Pos = 0;
 	//first loop
@@ -130,6 +134,7 @@ std::unique_ptr<Token> Scaner::processNumber() {
 		return std::make_unique<ErrorToken>(l,c,internal,Number_);
 	if(actualChar!='.')
 		return std::make_unique<Number>(l,c,val1);
+	getNextChar();
 	//second loop
 	while(Util::isDigit(actualChar)) {
 		int64_t b=actualChar-'0';

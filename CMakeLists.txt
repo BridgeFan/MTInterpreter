@@ -21,4 +21,5 @@ add_executable(MTInterpreter main.cpp
         Token/StringToken.cpp
         Token/Number.cpp
         Token/ErrorToken.cpp
-        Token/Util.cpp)
+        Token/Util.cpp
+        Parser.cpp)

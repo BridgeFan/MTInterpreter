@@ -24,8 +24,10 @@ private:
 	std::unique_ptr<Token> checkSpecialIds(int l, int c, const std::string& val);
 public:
 	explicit Scaner(std::unique_ptr<DataSource>&& source);
-	std::unique_ptr<Token> getNextToken();
-	[[nodiscard]] bool hasEnded() const;
+	virtual std::unique_ptr<Token> getNextToken();
+	virtual bool hasEnded() const;
+	virtual int getLine() const {return line;}
+	virtual int getColumn() const {return col;}
 };
 
 
