@@ -11,9 +11,9 @@
 
 struct ForNode: public Line {
 	InitNode init;
-	Expression condition;
-	AssignNode assignNode;
-	Block stat;
+	std::unique_ptr<Expression> condition;
+	std::optional<AssignNode> assignNodePre, assignNodeEach;
+	std::optional<Block> stat;
 };
 
 #endif //MTINTERPRETER_FORNODE_H

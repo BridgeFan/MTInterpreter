@@ -10,7 +10,7 @@
 #include <variant>
 
 struct IfNode: public Line {
-	Expression condition;
+	std::unique_ptr<Expression> condition;
 	Block stat;
 	std::variant<Block, std::nullptr_t> elseStat;
 };

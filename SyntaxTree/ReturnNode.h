@@ -9,9 +9,9 @@
 #include "Line.h"
 
 struct ReturnNode: public Line {
-	ReturnNode(): returnedValue(std::nullopt) {}
-	ReturnNode(Expression expr): returnedValue(expr) {}
-	std::optional<Expression> returnedValue;
+	ReturnNode(): returnedValue(nullptr) {}
+	ReturnNode(Expression& expr): returnedValue(&expr) {}
+	std::unique_ptr<Expression> returnedValue;
 };
 
 #endif //MTINTERPRETER_RETURNNODE_H

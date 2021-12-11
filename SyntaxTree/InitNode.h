@@ -11,7 +11,7 @@
 
 struct InitNode: public Line {
 	std::unique_ptr<TypeName> type;
-	std::unique_ptr<IdToken> name;
+	std::vector<IdToken> name;
 };
 
 #endif //MTINTERPRETER_INITNODE_H

@@ -20,6 +20,7 @@ class Parser {
 	std::unique_ptr<Token> prevToken=nullptr;
 	Scaner& scaner;
 	std::vector<FunctionNode> functions;
+	std::optional<AssignNode> getAssign(std::vector<std::unique_ptr<Token> > tokens={});
 	std::optional<Block> getBlock();
 	std::optional<Line> getLine(std::unique_ptr<Token> token=nullptr);
 	std::optional<IfNode> getIf();
@@ -27,7 +28,7 @@ class Parser {
 	std::optional<ForNode> getFor();
 	std::optional<FunCall> getFunCall(std::unique_ptr<IdToken> funName);
 	std::optional<InitNode> getInit(std::unique_ptr<TypeName> typeToken);
-	std::pair<std::optional<Expression>, std::unique_ptr<Token> > getExpression(std::unique_ptr<Token> firstToken=nullptr);
+	std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > getExpression(std::unique_ptr<Token> firstToken=nullptr);
 	std::unique_ptr<Token> getScanerToken(std::vector<TokenType> allowedTypes);
 	std::unique_ptr<Token> getScanerToken(TokenType type) {return getScanerToken(std::vector({type}));}
 public:

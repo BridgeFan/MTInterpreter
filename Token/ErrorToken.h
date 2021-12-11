@@ -12,6 +12,7 @@ enum ErrorType: uint16_t {
 	overflow, //too great value or too long name
 	unexpectedEof,
 	unexpectedToken,
+	wrongEnd,
 };
 
 class ErrorToken: public Token {

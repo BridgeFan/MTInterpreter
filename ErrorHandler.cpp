@@ -55,6 +55,9 @@ void ErrorHandler::addError(ErrorPlace place, const ErrorToken& token) {
 		case ErrorType::unexpectedToken:
 			str+="Expected token of type " + tokenTypeNames[token.getExpected()] + " but got " + token.getValue();
 			break;
+		case ErrorType::wrongEnd:
+			str+="Wrong ending of expression";
+			break;
 	}
 	str+=tokenTypeNames[token.getExpected()]+" type";
 	errorInfo.emplace_back(place, str);

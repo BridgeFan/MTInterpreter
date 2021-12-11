@@ -9,7 +9,7 @@
 #include "Expression.h"
 
 struct WhileNode: public Line {
-	Expression condition;
+	std::unique_ptr<Expression> condition;
 	Block stat;
 };
 

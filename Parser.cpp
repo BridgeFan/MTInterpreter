@@ -87,7 +87,7 @@ std::optional<Line> Parser::getLine(std::unique_ptr<Token> token) {
 		if(token2->getType()==End_)
 			return ReturnNode();
 		auto expr = getExpression(std::move(token2));
-		if(!expr.first)
+		if(!expr.first || expr.second->getType()!=End_)
 			return std::nullopt;
 		return ReturnNode(*expr.first);
 	}
@@ -99,14 +99,13 @@ std::optional<Line> Parser::getLine(std::unique_ptr<Token> token) {
 		if(!token2)
 			return std::nullopt;
 		if(token2->getType()==Assign_) {
-			auto expr = getExpression(std::unique_ptr<Assign>(dynamic_cast<Assign*>(token2.release())));
-			if(!expr.first)
+			std::vector<std::unique_ptr<Token> > assignTokens;
+			assignTokens.emplace_back(std::move(token));
+			assignTokens.emplace_back(std::move(token2));
+			auto assignNode = getAssign(std::move(assignTokens));
+			if(!assignNode)
 				return std::nullopt;
-			AssignNode node;
-			node.id=std::unique_ptr<IdToken>(dynamic_cast<IdToken*>(token.release()));
-			node.assign=std::unique_ptr<Assign>(dynamic_cast<Assign*>(token2.release()));
-			node.expression=*expr.first;
-			return node;
+			return assignNode;
 		}
 		if(token2->getType()==ParBegin_) {
 			return getFunCall(std::unique_ptr<IdToken>(dynamic_cast<IdToken*>(token.release())));
@@ -116,38 +115,133 @@ std::optional<Line> Parser::getLine(std::unique_ptr<Token> token) {
 }
 
 std::optional<IfNode> Parser::getIf() {
-	//TODO
 	//if↓
-	return std::nullopt;
+	auto token = getScanerToken(ParBegin_);
+	if(!token)
+		return std::nullopt;
+	auto expr = getExpression();
+	if(!expr.first || expr.second->getType()!=ParEnd_)
+		return std::nullopt;
+	auto block = getBlock();
+	if(!block)
+		return std::nullopt;
+	IfNode node;
+	node.condition=std::move(expr.first);
+	node.stat=*block;
+	auto token3 = getScanerToken(anyToken);
+	if(!token3)
+		return std::nullopt;
+	if(token3->getType()==Else_) {
+		auto elseBlock = getBlock();
+		if(!elseBlock)
+			return std::nullopt;
+		node.elseStat=*elseBlock;
+	}
+	else {
+		prevToken = std::move(token3);
+		node.elseStat=nullptr;
+	}
+	return node;
 }
 
 std::optional<WhileNode> Parser::getWhile() {
-	//TODO
 	//while↓
-	return std::nullopt;
+	auto token = getScanerToken(ParBegin_);
+	if(!token)
+		return std::nullopt;
+	auto expr = getExpression();
+	if(!expr.first || expr.second->getType()!=ParEnd_)
+		return std::nullopt;
+	auto block = getBlock();
+	if(!block)
+		return std::nullopt;
+	WhileNode node;
+	node.condition=std::move(expr.first);
+	node.stat=*block;
+	return node;
 }
 
 std::optional<ForNode> Parser::getFor() {
-	//TODO
 	//for↓
+	auto token = getScanerToken(ParBegin_);
+	if(!token)
+		return std::nullopt;
+	ForNode node;
+	auto token2 = getScanerToken(anyToken);
+	if(!token2)
+		return std::nullopt;
+	if(token2->getType()!=End_) {
+		std::vector<std::unique_ptr<Token> > tokenTmp;
+		tokenTmp.emplace_back(std::move(token2));
+		auto assignNode = getAssign(std::move(tokenTmp));
+		if(!assignNode)
+			return std::nullopt;
+		node.assignNodePre=std::move(assignNode);
+	}
+	auto expr = getExpression();
+	if (!expr.first || expr.second->getType() != End_)
+		return std::nullopt;
+	node.condition = std::move(expr.first);
 
-	return std::nullopt;
+	auto token3 = getScanerToken(anyToken);
+	if(!token3)
+		return std::nullopt;
+	if(token3->getType()!=ParEnd_) {
+		std::vector<std::unique_ptr<Token> > tokenTmp;
+		tokenTmp.emplace_back(std::move(token3));
+		auto assignNode = getAssign(std::move(tokenTmp));
+		if(!assignNode)
+			return std::nullopt;
+		node.assignNodeEach=std::move(assignNode);
+	}
+	auto block = getBlock();
+	if(!block)
+		return std::nullopt;
+	node.stat=block;
+	return node;
 }
 
 std::optional<InitNode> Parser::getInit(std::unique_ptr<TypeName> typeToken) {
-	//TODO
+	//TODO: init value init
 	//int/double↓
-	return std::nullopt;
+	InitNode node;
+	std::unique_ptr<Token> token;
+	if(!typeToken)
+		token=getScanerToken(TypeName_);
+	else
+		token=std::move(typeToken);
+	if(!token)
+		return std::nullopt;
+	node.type.reset(dynamic_cast<TypeName*>(token.release()));
+	while(token->getType()!=End_) {
+		auto token2 = getScanerToken(Id_);
+		if(!token2)
+			return std::nullopt;
+		node.name.push_back(*dynamic_cast<IdToken*>(token2.get()));
+		token=getScanerToken({End_, Comma_});
+		if(!token)
+			return std::nullopt;
+	}
+	return node;
 }
 
-std::pair<std::optional<Expression>, std::unique_ptr<Token> > Parser::getExpression(std::unique_ptr<Token> firstToken) {
+std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpression(std::unique_ptr<Token> firstToken) {
 	//TODO
-	return {std::nullopt, nullptr};
+	return {nullptr, nullptr};
 }
 
 std::optional<FunCall> Parser::getFunCall(std::unique_ptr<IdToken> funName) {
-	//TODO
 	//funName(↓
+	FunCall call;
+	call.name=std::move(funName);
+	auto token = getScanerToken(anyToken);
+	while(token->getType()!=ParEnd_) {
+		auto expr = getExpression(std::move(token));
+		if(!expr.first || (expr.second->getType()!=Comma_ && expr.second->getType()!=ParEnd_))
+			return std::nullopt;
+		token=std::move(expr.second);
+	}
+
 	return std::nullopt;
 }
 
@@ -198,4 +292,39 @@ void Parser::parse() {
 	while(!scaner.hasEnded() && parseNext()==EXIT_SUCCESS)
 		;
 
+}
+
+std::optional<AssignNode> Parser::getAssign(std::vector<std::unique_ptr<Token>> tokens) {
+	//id assignNode statement
+	AssignNode assignNode;
+	std::unique_ptr<Token> assToken1, assToken2;
+	if(!tokens.empty()) {
+		assToken1 = std::move(tokens.back());
+		tokens.pop_back();
+	}
+	else
+		assToken1 = getScanerToken(Id_);
+	if (!assToken1)
+		return std::nullopt;
+	assignNode.id = std::unique_ptr<IdToken>(dynamic_cast<IdToken *>(assToken1.release()));
+
+	if(!tokens.empty()) {
+		assToken2 = std::move(tokens.back());
+		tokens.pop_back();
+	}
+	else
+		assToken2 = getScanerToken(Assign_);
+	if (!assToken2)
+		return std::nullopt;
+	assignNode.assign = std::unique_ptr<Assign>(dynamic_cast<Assign *>(assToken2.release()));
+
+
+	auto expr = getExpression();
+	if (!expr.first || expr.second->getType() != ParEnd_) {
+		ErrorHandler::addError(ParserError,ErrorToken(-1,-1,"",ParEnd_,wrongEnd));
+		return std::nullopt;
+	}
+	assignNode.expression = std::move(expr.first);
+
+	return assignNode;
 }

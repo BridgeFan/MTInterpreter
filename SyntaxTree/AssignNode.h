@@ -12,7 +12,7 @@
 struct AssignNode: public Line {
 	std::unique_ptr<IdToken> id;
 	std::unique_ptr<Assign> assign;
-	Expression expression;
+	std::unique_ptr<Expression> expression;
 };
 
 #endif //MTINTERPRETER_ASSIGN_H
