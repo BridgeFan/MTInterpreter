@@ -12,7 +12,7 @@
 struct IfNode: public Line {
 	std::unique_ptr<Expression> condition;
 	Block stat;
-	std::variant<Block, std::nullptr_t> elseStat;
+	std::optional<Block> elseStat;
 };
 
 #endif //MTINTERPRETER_IFNODE_H

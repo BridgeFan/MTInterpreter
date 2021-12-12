@@ -114,7 +114,9 @@ std::unique_ptr<Line> Parser::getLine(std::unique_ptr<Token> token) {
 		auto expr = getExpression(End_,std::move(token2));
 		if(!expr.first)
 			return std::make_unique<ReturnNode>();
-		return std::make_unique<ReturnNode>(*expr.first);
+		ReturnNode node;
+		node.returnedValue=std::move(expr.first);
+		return std::make_unique<ReturnNode>(std::move(node));
 	}
 	if(token->getType() == TypeName_) {
 		auto val = getInit(std::unique_ptr<TypeName>(dynamic_cast<TypeName*>(token.release())));
@@ -171,18 +173,21 @@ std::optional<IfNode> Parser::getIf() {
 	if(token3->getType()==Else_) {
 		auto elseBlock = getLine();
 		if(elseBlock) {
-			if(typeid(*block)==typeid(Block))
-				node.stat = *dynamic_cast<Block*>(block.release());
-			else
-				node.stat.lines.emplace_back(std::move(block));
+			if(typeid(*elseBlock)==typeid(Block))
+				node.elseStat = std::move(*dynamic_cast<Block*>(elseBlock.get()));
+			else {
+				Block block;
+				block.lines.emplace_back(std::move(elseBlock));
+				node.elseStat=block;
+			}
 		}
 		else
-			node.elseStat=nullptr;
+			node.elseStat=std::nullopt;
 		return node;
 	}
 	else {
 		prevToken = std::move(token3);
-		node.elseStat=nullptr;
+		node.elseStat=std::nullopt;
 	}
 	return node;
 }
@@ -510,6 +515,8 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 			calcStack.emplace(std::move(newExpr));
 		}
 	}
+	if(calcStack.empty())
+		return {nullptr,std::move(token)};
 	return {std::move(calcStack.top()),std::move(token)};
 }
 
