@@ -577,9 +577,9 @@ TEST(ParserTest, EmptyFunctionVoid) {
 	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
 }
 
-TEST(ParserTest, SemicolonFunctionReturningIntWithGlobalVar) {
+TEST(ParserTest, SemicolonFunctionWithGlobalVar) {
 	ErrorHandler::clear();
-	Scaner scaner = initScaner("int a; void f(){;}");
+	Scaner scaner = initScaner("int a; void f(){;;;}");
 	Parser parser(scaner);
 	SyntaxTree result = parser.parse();
 	ASSERT_EQ(result.globalVars.size(), 1);
@@ -1175,6 +1175,43 @@ TEST(ParserTest, ReturnValueTest) {
 	ASSERT_TRUE(bool(ret->returnedValue));
 	ASSERT_EQ(typeid(*ret->returnedValue),typeid(NumberExpression));
 	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+}
+
+TEST(ParserTest, WrongToken) {
+	ErrorHandler::clear();
+	Scaner scaner = initScaner("07a");
+	Parser parser(scaner);
+	SyntaxTree result = parser.parse();
+	ASSERT_EQ(result.globalVars.size(), 0);
+	ASSERT_EQ(result.functions.size(), 0);
+	ASSERT_NE(ErrorHandler::getErrorSize(),0);
+}
+
+TEST(ParserTest, MissingBracket) {
+	ErrorHandler::clear();
+	Scaner scaner = initScaner("int f(){");
+	Parser parser(scaner);
+	SyntaxTree result = parser.parse();
+	ASSERT_EQ(result.globalVars.size(), 0);
+	ASSERT_EQ(result.functions.size(), 1);
+	ASSERT_NE(ErrorHandler::getErrorSize(),0);
+}
+
+TEST(ParserTest, MissingSemicolon) {
+	ErrorHandler::clear();
+	Scaner scaner = initScaner("int a,b");
+	Parser parser(scaner);
+	SyntaxTree result = parser.parse();
+	ASSERT_NE(ErrorHandler::getErrorSize(),0);
+}
+
+TEST(ParserTest, MissingBracket1) {
+	ErrorHandler::clear();
+	Scaner scaner = initScaner("int f({}");
+	Parser parser(scaner);
+	SyntaxTree result = parser.parse();
+	ASSERT_EQ(result.functions.size(), 1);
+	ASSERT_NE(ErrorHandler::getErrorSize(),0);
 }
 
 

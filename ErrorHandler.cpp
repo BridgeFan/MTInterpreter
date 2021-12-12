@@ -58,22 +58,22 @@ void ErrorHandler::addError(ErrorPlace place, const ErrorToken& token) {
 			break;
 		case ErrorType::unexpectedToken:
 			str+="Expected token of type " + tokenTypeNames[token.getExpected()] + " but got " + tokenTypeNames[token.getGotType()];
-			return;
+			break;
 		case ErrorType::wrongEnd:
 			str+="Wrong ending of expression";
-			return;
+			break;
 		case ErrorType::modifyAssignToUninitialized:
 			str+="Modify assign to unitialized variable";
-			return;
+			break;
 		case ErrorType::unexpectedParEnd:
 			str+="Unexpected )";
-			return;
+			break;
 		case ErrorType::unexpectedParBegin:
 			str+="Unexpected (";
-			return;
+			break;
 		case ErrorType::unexpectedEndOfExpression:
 			str+="Unexpected end of expression. Too few arguments of binary operator " + tokenTypeNames[token.getExpected()];
-			return;
+			break;
 	}
 	errorInfo.emplace_back(place, str);
 	if(errorInfo.size()>=limit) {

@@ -46,6 +46,9 @@ std::unique_ptr<Token> Parser::getScanerToken(std::vector<TokenType> allowedType
 		wasWrongType=true;
 		//return nullptr;
 	}
+	if(token->getType()==18u) {
+		;
+	}
 	return token;
 }
 
@@ -56,9 +59,11 @@ std::optional<Block> Parser::getBlock() {
 	std::unique_ptr<Token> token;
 	while((token=getScanerToken(anyToken)) && token->getType()!=BlockEnd_) {
 		line=getLine();
-		if(!line || typeid(*line)==typeid(Line)) {
+		if(!line) {
 			return block;
 		}
+		else if(typeid(*line)==typeid(Line))
+			continue;
 		block.lines.emplace_back(std::move(line));
 	}
 	if(!token) {
@@ -126,7 +131,7 @@ std::unique_ptr<Line> Parser::getLine(std::unique_ptr<Token> token) {
 		auto token2 = getScanerToken({Assign_,ParBegin_});
 		if(!token2)
 			return nullptr;
-		if(wasWrongType) //TODO: what to assume
+		if(wasWrongType) //assume empty line
 			return nullptr;
 		if(token2->getType()==Assign_) {
 			std::vector<std::unique_ptr<Token> > assignTokens;
@@ -433,7 +438,7 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 		else if(token->getType()==ParEnd_) {
 			isMinusUnary=false;
 			if(stack.empty()) {
-				ErrorHandler::addError(ParserError,{token->getLine(),token->getColumn(),unexpectedParEnd});
+				break;
 			}
 			while(!stack.empty() && stack.top().first->getType()!=ParBegin_) {
 				exit.emplace(std::move(stack.top()));
@@ -542,9 +547,12 @@ std::optional<FunCall> Parser::getFunCall(std::unique_ptr<IdToken> funName) {
 }
 
 bool Parser::parseNext() {
-	auto retTypeToken = getScanerToken({TypeName_,Void_,_eof});
+	auto retTypeToken = getScanerToken({TypeName_,Void_,_eof, End_});
 	if(!retTypeToken)
 		return ErrorHandler::getErrorSize()!=0;
+	if(retTypeToken->getType()==End_) {
+		return EXIT_SUCCESS;
+	}
 	if(wasWrongType) {
 		//ignore
 		return EXIT_FAILURE;
@@ -575,8 +583,9 @@ bool Parser::parseNext() {
 		std::unique_ptr<Token> token;
 		while ((token=getScanerToken({TypeName_, ParEnd_})) && token->getType() == TypeName_) {
 			std::unique_ptr<Token> name = getScanerToken(Id_);
-			if (!name)
+			if (!name) {
 				return EXIT_FAILURE;
+			}
 			if(wasWrongType) {
 				prevToken = std::move(name);
 				name = std::make_unique<IdToken>(-1,-1,"");
@@ -586,6 +595,9 @@ bool Parser::parseNext() {
 		}
 		if (!token)
 			return EXIT_FAILURE;
+		if(token->getType()!=ParEnd_) {
+			ErrorHandler::addError(ParserError, ErrorToken(token->getLine(),token->getColumn(),token->getType(),ParEnd_));
+		}
 		auto block = getBlock();
 		if (!block)
 			return EXIT_FAILURE;
