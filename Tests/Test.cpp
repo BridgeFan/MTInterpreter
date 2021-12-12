@@ -785,6 +785,196 @@ TEST(ParserTest, ConversionDoubleTest) {
 	ASSERT_EQ(std::get<0>(expr1->token.getValue()),5);
 }
 
+TEST(ParserTest, NegationTest) {
+	ErrorHandler::clear();
+	Scaner scaner = initScaner("double a=!5;");
+	Parser parser(scaner);
+	SyntaxTree result = parser.parse();
+	ASSERT_EQ(result.functions.size(), 0);
+	ASSERT_EQ(result.globalVars.size(), 1);
+	ASSERT_EQ(result.globalVars[0].type.getSubtype(), TypeNameType::doubleType);
+	ASSERT_EQ(result.globalVars[0].vars.size(), 1);
+	ASSERT_EQ(result.globalVars[0].vars[0].first.getValue(), "a");
+	ASSERT_TRUE((bool)result.globalVars[0].vars[0].second);
+	ASSERT_EQ(typeid(*result.globalVars[0].vars[0].second), typeid(Expression));
+	const auto expr = result.globalVars[0].vars[0].second.get();
+	ASSERT_NE(expr->op,std::nullopt);
+	ASSERT_EQ((*expr->op)->getType(),NegOp_);
+	ASSERT_NE(expr->expression1,std::nullopt);
+	ASSERT_EQ(typeid(**expr->expression1),typeid(NumberExpression));
+	const auto expr1 = dynamic_cast<NumberExpression*>(expr->expression1->get());
+	ASSERT_EQ(expr1->token.getValue().index(),0);
+	ASSERT_EQ(std::get<0>(expr1->token.getValue()),5);
+}
+
+TEST(ParserTest, CompareTest) {
+	ErrorHandler::clear();
+	Scaner scaner = initScaner("int a=5==b;");
+	Parser parser(scaner);
+	SyntaxTree result = parser.parse();
+	ASSERT_EQ(result.functions.size(), 0);
+	ASSERT_EQ(result.globalVars.size(), 1);
+	ASSERT_EQ(result.globalVars[0].type.getSubtype(), TypeNameType::intType);
+	ASSERT_EQ(result.globalVars[0].vars.size(), 1);
+	ASSERT_EQ(result.globalVars[0].vars[0].first.getValue(), "a");
+	ASSERT_TRUE((bool)result.globalVars[0].vars[0].second);
+	ASSERT_EQ(typeid(*result.globalVars[0].vars[0].second), typeid(Expression));
+	const auto expr = result.globalVars[0].vars[0].second.get();
+	ASSERT_NE(expr->op,std::nullopt);
+	ASSERT_EQ((*expr->op)->getType(),RelOp_);
+	ASSERT_EQ(dynamic_cast<RelOp*>(expr->op->get())->getSubtype(),equal);
+	ASSERT_NE(expr->expression1,std::nullopt);
+	ASSERT_EQ(typeid(**expr->expression1),typeid(NumberExpression));
+	const auto expr1 = dynamic_cast<NumberExpression*>(expr->expression1->get());
+	ASSERT_EQ(expr1->token.getValue().index(),0);
+	ASSERT_EQ(std::get<0>(expr1->token.getValue()),5);
+
+	ASSERT_NE(expr->expression2,std::nullopt);
+	ASSERT_EQ(typeid(**expr->expression2),typeid(IdExpression));
+	const auto expr2 = dynamic_cast<IdExpression*>(expr->expression2->get());
+	ASSERT_EQ(expr2->token.getValue(),"b");
+}
+
+TEST(ParserTest, LogicTest) {
+	ErrorHandler::clear();
+	Scaner scaner = initScaner("int a=5||b;");
+	Parser parser(scaner);
+	SyntaxTree result = parser.parse();
+	ASSERT_EQ(result.functions.size(), 0);
+	ASSERT_EQ(result.globalVars.size(), 1);
+	ASSERT_EQ(result.globalVars[0].type.getSubtype(), TypeNameType::intType);
+	ASSERT_EQ(result.globalVars[0].vars.size(), 1);
+	ASSERT_EQ(result.globalVars[0].vars[0].first.getValue(), "a");
+	ASSERT_TRUE((bool)result.globalVars[0].vars[0].second);
+	ASSERT_EQ(typeid(*result.globalVars[0].vars[0].second), typeid(Expression));
+	const auto expr = result.globalVars[0].vars[0].second.get();
+	ASSERT_NE(expr->op,std::nullopt);
+	ASSERT_EQ((*expr->op)->getType(),Logic_);
+	ASSERT_EQ(dynamic_cast<LogicOp*>(expr->op->get())->getSubtype(),or_);
+	ASSERT_NE(expr->expression1,std::nullopt);
+	ASSERT_EQ(typeid(**expr->expression1),typeid(NumberExpression));
+	const auto expr1 = dynamic_cast<NumberExpression*>(expr->expression1->get());
+	ASSERT_EQ(expr1->token.getValue().index(),0);
+	ASSERT_EQ(std::get<0>(expr1->token.getValue()),5);
+
+	ASSERT_NE(expr->expression2,std::nullopt);
+	ASSERT_EQ(typeid(**expr->expression2),typeid(IdExpression));
+	const auto expr2 = dynamic_cast<IdExpression*>(expr->expression2->get());
+	ASSERT_EQ(expr2->token.getValue(),"b");
+}
+
+TEST(ParserTest, ExpressionSequenceTest) {
+	ErrorHandler::clear();
+	Scaner scaner = initScaner("int a=d+b+c;");
+	Parser parser(scaner);
+	SyntaxTree result = parser.parse();
+	ASSERT_EQ(result.functions.size(), 0);
+	ASSERT_EQ(result.globalVars.size(), 1);
+	ASSERT_EQ(result.globalVars[0].type.getSubtype(), TypeNameType::intType);
+	ASSERT_EQ(result.globalVars[0].vars.size(), 1);
+	ASSERT_EQ(result.globalVars[0].vars[0].first.getValue(), "a");
+	ASSERT_TRUE((bool)result.globalVars[0].vars[0].second);
+	ASSERT_EQ(typeid(*result.globalVars[0].vars[0].second), typeid(Expression));
+	const auto expr = result.globalVars[0].vars[0].second.get();
+	ASSERT_NE(expr->op,std::nullopt);
+	ASSERT_EQ((*expr->op)->getType(),Add_);
+	ASSERT_NE(expr->expression1,std::nullopt);
+	ASSERT_EQ(typeid(**expr->expression1),typeid(Expression));
+	const auto expr1 = expr->expression1->get();
+	ASSERT_NE(expr1->op,std::nullopt);
+	ASSERT_EQ((*expr1->op)->getType(),Add_);
+	ASSERT_NE(expr1->expression1,std::nullopt);
+	ASSERT_EQ(typeid(**expr1->expression1),typeid(IdExpression));
+	const auto expr2 = dynamic_cast<IdExpression*>(expr1->expression1->get());
+	ASSERT_EQ(expr2->token.getValue(),"d");
+
+	ASSERT_NE(expr1->expression1,std::nullopt);
+	ASSERT_EQ(typeid(**expr1->expression1),typeid(IdExpression));
+	const auto expr3 = dynamic_cast<IdExpression*>(expr1->expression2->get());
+	ASSERT_EQ(expr3->token.getValue(),"b");
+
+	ASSERT_NE(expr->expression2,std::nullopt);
+	ASSERT_EQ(typeid(**expr->expression2),typeid(IdExpression));
+	const auto expr4 = dynamic_cast<IdExpression*>(expr->expression2->get());
+	ASSERT_EQ(expr4->token.getValue(),"c");
+}
+
+TEST(ParserTest, DifferentPriorities1) {
+	ErrorHandler::clear();
+	Scaner scaner = initScaner("int a=d*b+c;");
+	Parser parser(scaner);
+	SyntaxTree result = parser.parse();
+	ASSERT_EQ(result.functions.size(), 0);
+	ASSERT_EQ(result.globalVars.size(), 1);
+	ASSERT_EQ(result.globalVars[0].type.getSubtype(), TypeNameType::intType);
+	ASSERT_EQ(result.globalVars[0].vars.size(), 1);
+	ASSERT_EQ(result.globalVars[0].vars[0].first.getValue(), "a");
+	ASSERT_TRUE((bool)result.globalVars[0].vars[0].second);
+	ASSERT_EQ(typeid(*result.globalVars[0].vars[0].second), typeid(Expression));
+	const auto expr = result.globalVars[0].vars[0].second.get();
+	ASSERT_NE(expr->op,std::nullopt);
+	ASSERT_EQ((*expr->op)->getType(),Add_);
+	ASSERT_NE(expr->expression1,std::nullopt);
+	ASSERT_EQ(typeid(**expr->expression1),typeid(Expression));
+	const auto expr1 = expr->expression1->get();
+	ASSERT_NE(expr1->op,std::nullopt);
+	ASSERT_EQ((*expr1->op)->getType(),MultOp_);
+	ASSERT_NE(expr1->expression1,std::nullopt);
+	ASSERT_EQ(typeid(**expr1->expression1),typeid(IdExpression));
+	const auto expr2 = dynamic_cast<IdExpression*>(expr1->expression1->get());
+	ASSERT_EQ(expr2->token.getValue(),"d");
+
+	ASSERT_NE(expr1->expression1,std::nullopt);
+	ASSERT_EQ(typeid(**expr1->expression1),typeid(IdExpression));
+	const auto expr3 = dynamic_cast<IdExpression*>(expr1->expression2->get());
+	ASSERT_EQ(expr3->token.getValue(),"b");
+
+	ASSERT_NE(expr->expression2,std::nullopt);
+	ASSERT_EQ(typeid(**expr->expression2),typeid(IdExpression));
+	const auto expr4 = dynamic_cast<IdExpression*>(expr->expression2->get());
+	ASSERT_EQ(expr4->token.getValue(),"c");
+}
+
+TEST(ParserTest, DifferentPriorities2) {
+	ErrorHandler::clear();
+	Scaner scaner = initScaner("int a=d+b*c;");
+	Parser parser(scaner);
+	SyntaxTree result = parser.parse();
+	ASSERT_EQ(result.functions.size(), 0);
+	ASSERT_EQ(result.globalVars.size(), 1);
+	ASSERT_EQ(result.globalVars[0].type.getSubtype(), TypeNameType::intType);
+	ASSERT_EQ(result.globalVars[0].vars.size(), 1);
+	ASSERT_EQ(result.globalVars[0].vars[0].first.getValue(), "a");
+	ASSERT_TRUE((bool)result.globalVars[0].vars[0].second);
+	ASSERT_EQ(typeid(*result.globalVars[0].vars[0].second), typeid(Expression));
+	const auto expr = result.globalVars[0].vars[0].second.get();
+	ASSERT_NE(expr->op,std::nullopt);
+	ASSERT_EQ((*expr->op)->getType(),Add_);
+
+	ASSERT_NE(expr->expression1,std::nullopt);
+	ASSERT_EQ(typeid(**expr->expression1),typeid(IdExpression));
+	const auto expr4 = dynamic_cast<IdExpression*>(expr->expression1->get());
+	ASSERT_EQ(expr4->token.getValue(),"d");
+
+	ASSERT_NE(expr->expression2,std::nullopt);
+	ASSERT_EQ(typeid(**expr->expression2),typeid(Expression));
+
+	const auto expr1 = expr->expression2->get();
+	ASSERT_NE(expr1->op,std::nullopt);
+	ASSERT_EQ((*expr1->op)->getType(),MultOp_);
+	ASSERT_NE(expr1->expression1,std::nullopt);
+	ASSERT_EQ(typeid(**expr1->expression1),typeid(IdExpression));
+	const auto expr2 = dynamic_cast<IdExpression*>(expr1->expression1->get());
+	ASSERT_EQ(expr2->token.getValue(),"b");
+
+	ASSERT_NE(expr1->expression2,std::nullopt);
+	ASSERT_EQ(typeid(**expr1->expression2),typeid(IdExpression));
+	const auto expr3 = dynamic_cast<IdExpression*>(expr1->expression2->get());
+	ASSERT_EQ(expr3->token.getValue(),"c");
+}
+
+
+
 
 
 int main(int argc, char** argv) {

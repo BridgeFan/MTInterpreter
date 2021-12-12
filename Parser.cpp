@@ -450,7 +450,7 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 			}
 			tmpObj.first=std::move(token);
 			int priority = getPriority(tmpObj);
-			while(!stack.empty() && getPriority(stack.top())>=getPriority(tmpObj) && !(stack.top().second && tmpObj.second)) {
+			while(!stack.empty() && getPriority(stack.top())<=getPriority(tmpObj) && !(stack.top().second && tmpObj.second)) {
 				exit.emplace(std::move(stack.top()));
 				stack.pop();
 			}
