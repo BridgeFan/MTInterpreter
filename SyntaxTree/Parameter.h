@@ -11,9 +11,9 @@
 #include "Line.h"
 
 struct Parameter: public Line {
-	std::unique_ptr<TypeName> type;
-	std::unique_ptr<IdToken> name;
-	Parameter(std::unique_ptr<TypeName>&& t, std::unique_ptr<IdToken>&& n): type(std::move(t)), name(std::move(n)) {}
+	TypeName type;
+	IdToken name;
+	Parameter(const TypeName& type, const IdToken& name): type(type), name(name) {}
 };
 
 

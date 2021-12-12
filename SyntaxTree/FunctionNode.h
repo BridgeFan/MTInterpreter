@@ -9,8 +9,8 @@
 #include "../Token/IdToken.h"
 
 struct FunctionNode {
-	std::unique_ptr<IdToken> id; //only TypeName or Void_
-	std::unique_ptr<Token> returnedType;
+	IdToken id;
+	std::variant<TypeName, Token> returnedType; //only TypeName or Void_
 	std::vector<Parameter> parameters;
 	Block block;
 };

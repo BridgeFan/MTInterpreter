@@ -8,12 +8,14 @@
 #include "AssignNode.h"
 #include "InitNode.h"
 #include <variant>
+#include <memory>
 
 struct ForNode: public Line {
 	InitNode init;
 	std::unique_ptr<Expression> condition;
 	std::optional<AssignNode> assignNodePre, assignNodeEach;
-	std::optional<Block> stat;
+	Block stat;
+	ForNode()=default;
 };
 
 #endif //MTINTERPRETER_FORNODE_H

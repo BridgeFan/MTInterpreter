@@ -7,6 +7,7 @@
 #include "ErrorHandler.h"
 std::map<TokenType, std::string> tokenTypeNames;
 std::vector<std::pair<ErrorPlace, std::string> > ErrorHandler::errorInfo;
+int ErrorHandler::limit = 1024;
 
 int ErrorHandler::getErrorSize() {
 	return errorInfo.size();
@@ -45,27 +46,37 @@ void ErrorHandler::addError(ErrorPlace place, const ErrorToken& token) {
 	switch(token.getErrorType()) {
 		case ErrorType::unexpectedCharacter:
 			str+="Unexpected character (" + token.getValue() +") when trying to make token of ";
+			str+=tokenTypeNames[token.getExpected()]+" type";
 			break;
 		case ErrorType::overflow:
 			str+="Too great value of token of ";
+			str+=tokenTypeNames[token.getExpected()]+" type";
 			break;
 		case ErrorType::unexpectedEof:
 			str+="Unexpected end of file";
+			str+=tokenTypeNames[token.getExpected()]+" type";
 			break;
 		case ErrorType::unexpectedToken:
-			str+="Expected token of type " + tokenTypeNames[token.getExpected()] + " but got " + token.getValue();
-			break;
+			str+="Expected token of type " + tokenTypeNames[token.getExpected()] + " but got " + tokenTypeNames[token.getGotType()];
+			return;
 		case ErrorType::wrongEnd:
 			str+="Wrong ending of expression";
-			break;
+			return;
+		case ErrorType::modifyAssignToUninitialized:
+			str+="Modify assign to unitialized variable";
+			return;
 	}
-	str+=tokenTypeNames[token.getExpected()]+" type";
 	errorInfo.emplace_back(place, str);
+	if(errorInfo.size()>=limit) {
+		showErrors(std::cout,std::cerr);
+		std::cout << "Too many errors!";
+		exit(EXIT_FAILURE);
+	}
 }
 
-void ErrorHandler::showErrors(std::ostream& out) {
+void ErrorHandler::showErrors(std::ostream& okOut, std::ostream& out) {
 	if(getErrorSize()==0) {
-		out << "No errors\n";
+		okOut << "No errors\n";
 		return;
 	}
 	out << "Errors found: "+ std::to_string(ErrorHandler::getErrorSize())+"\n";
@@ -80,4 +91,13 @@ void ErrorHandler::showErrors(std::ostream& out) {
 
 void ErrorHandler::clear() {
 	errorInfo.clear();
+}
+
+void ErrorHandler::setLimit(int a) {
+	limit=a;
+	if(errorInfo.size()>=limit) {
+		showErrors(std::cout,std::cerr);
+		std::cout << "Too many errors!";
+		exit(EXIT_FAILURE);
+	}
 }

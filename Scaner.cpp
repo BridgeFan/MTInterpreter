@@ -316,7 +316,7 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 			}
 		}
 		if(actualChar=='(') {
-			actualChar='0';
+			actualChar='\0';
 			return std::make_unique<Token>(ParBegin_, retLine,retCol);
 		}
 		if(actualChar==')') {

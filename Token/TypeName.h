@@ -17,6 +17,7 @@ class TypeName: public Token {
 	TypeNameType subtype;
 public:
 	TypeName(int line, int column, TypeNameType subtype);
+	TypeName()=default;
 	TypeNameType getSubtype() const;
 };
 

@@ -37,16 +37,18 @@ int main(int argc, char** argv) {
 			}
 		}
 	}*/
-	dataSource = std::make_unique<StringDataSource>("int a(){}");
+	//dataSource = std::make_unique<StringDataSource>("int b,c;\ndouble e;\nint f(){}");
+	ErrorHandler::setLimit(100);
+	dataSource = std::make_unique<StringDataSource>("int f(double b){\n}");
 	Scaner scaner(std::move(dataSource));
-	/*Parser parser(scaner);
-	parser.parse();*/
+	Parser parser(scaner);
+	parser.parse();
 
-	auto tokenPtr = scaner.getNextToken();
+	/*auto tokenPtr = scaner.getNextToken();
 	if(tokenPtr->getType()==Error_) {
 		auto* token = dynamic_cast<ErrorToken*>(tokenPtr.get());
 		ErrorHandler::addError(ScanerError, *token);
-	}
-	ErrorHandler::showErrors(std::cout);
+	}*/
+	ErrorHandler::showErrors(std::cout,std::cerr);
 	return 0;
 }

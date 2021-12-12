@@ -38,6 +38,7 @@ protected:
 	TokenType type;
 public:
 	Token(TokenType type, int line, int column);
+	Token()=default;
 	TokenType getType() const;
 	int getLine() const;
 	int getColumn() const;

@@ -19,7 +19,7 @@ struct Expression {
 	//TODO: expression
 	std::reference_wrapper<Expression> expression1;
 	std::optional<std::reference_wrapper<Expression> > expression2; //can be null
-	std::optional<std::reference_wrapper<Token> >  op; //can be null for simple expressions
+	std::optional<std::reference_wrapper<Token> >  op; //can be null for simple expressions (derived types)
 };
 
 struct IdExpression: public Expression {
