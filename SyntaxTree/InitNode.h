@@ -12,8 +12,8 @@
 
 struct InitNode: public Line {
 	TypeName type;
-	std::vector<std::pair<IdToken, std::optional<std::reference_wrapper<Expression>>>> vars;
-	InitNode(TypeName type, std::vector<std::pair<IdToken, std::optional<std::reference_wrapper<Expression>>>> vars): type(std::move(type)), vars(std::move(vars)) {}
+	std::vector<std::pair<IdToken, std::shared_ptr<Expression>>> vars;
+	InitNode(TypeName type, std::vector<std::pair<IdToken, std::shared_ptr<Expression>>> vars): type(std::move(type)), vars(std::move(vars)) {}
 	InitNode()=default;
 	InitNode(const InitNode&)=default;
 };

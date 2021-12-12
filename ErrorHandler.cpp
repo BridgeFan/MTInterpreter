@@ -53,7 +53,7 @@ void ErrorHandler::addError(ErrorPlace place, const ErrorToken& token) {
 			str+=tokenTypeNames[token.getExpected()]+" type";
 			break;
 		case ErrorType::unexpectedEof:
-			str+="Unexpected end of file";
+			str+="Unexpected end of file but expected ";
 			str+=tokenTypeNames[token.getExpected()]+" type";
 			break;
 		case ErrorType::unexpectedToken:
@@ -64,6 +64,15 @@ void ErrorHandler::addError(ErrorPlace place, const ErrorToken& token) {
 			return;
 		case ErrorType::modifyAssignToUninitialized:
 			str+="Modify assign to unitialized variable";
+			return;
+		case ErrorType::unexpectedParEnd:
+			str+="Unexpected )";
+			return;
+		case ErrorType::unexpectedParBegin:
+			str+="Unexpected (";
+			return;
+		case ErrorType::unexpectedEndOfExpression:
+			str+="Unexpected end of expression. Too few arguments of binary operator " + tokenTypeNames[token.getExpected()];
 			return;
 	}
 	errorInfo.emplace_back(place, str);

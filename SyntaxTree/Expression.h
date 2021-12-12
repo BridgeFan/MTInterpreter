@@ -14,12 +14,12 @@
 #include "../Token/Number.h"
 
 struct FunCall;
-
 struct Expression {
 	//TODO: expression
-	std::reference_wrapper<Expression> expression1;
-	std::optional<std::reference_wrapper<Expression> > expression2; //can be null
-	std::optional<std::reference_wrapper<Token> >  op; //can be null for simple expressions (derived types)
+	std::optional<std::unique_ptr<Expression> > expression1;
+	std::optional<std::unique_ptr<Expression> > expression2; //can be null
+	std::optional<std::unique_ptr<Token> >  op; //can be null for simple expressions (derived types)
+	virtual ~Expression()=default;
 };
 
 struct IdExpression: public Expression {
@@ -35,7 +35,7 @@ struct NumberExpression: public Expression {
 };
 
 struct FunCallExpression: public Expression {
-	std::reference_wrapper<FunCall> token;
+	std::optional<std::unique_ptr<FunCall> > token;
 };
 
 

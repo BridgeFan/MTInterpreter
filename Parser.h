@@ -31,13 +31,14 @@ class Parser {
 	std::optional<ForNode> getFor();
 	std::optional<FunCall> getFunCall(std::unique_ptr<IdToken> funName);
 	std::optional<InitNode> getInit(std::unique_ptr<TypeName> typeToken, std::unique_ptr<IdToken> idToken=nullptr);
-	std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > getExpression(std::vector<TokenType> allowedEnds, std::unique_ptr<Token> firstToken=nullptr);
+	std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > getExpression(const std::vector<TokenType>& allowedEnds, std::unique_ptr<Token> firstToken=nullptr);
 	std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > getExpression(TokenType allowedEnd, std::unique_ptr<Token> firstToken=nullptr) {return getExpression(std::vector({allowedEnd}),std::move(firstToken));}
 	std::unique_ptr<Token> getScanerToken(std::vector<TokenType> allowedTypes);
 	std::unique_ptr<Token> getScanerToken(TokenType type) {return getScanerToken(std::vector({type}));}
 public:
 	bool parseNext();
 	explicit Parser(Scaner& scaner);
+	explicit Parser(Scaner&& scaner);
 	SyntaxTree parse();
 };
 

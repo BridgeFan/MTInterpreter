@@ -12,7 +12,7 @@
 
 
 struct Block: public Line {
-	std::vector<std::reference_wrapper<Line> > lines;
+	std::vector<std::shared_ptr<Line> > lines;
 };
 
 #endif //MTINTERPRETER_BLOCKNODE_H

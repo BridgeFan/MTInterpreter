@@ -15,6 +15,9 @@ enum ErrorType: uint16_t {
 	unexpectedToken,
 	wrongEnd,
 	modifyAssignToUninitialized,
+	unexpectedParEnd,
+	unexpectedParBegin,
+	unexpectedEndOfExpression,
 };
 
 class ErrorToken: public Token {
@@ -27,6 +30,7 @@ public:
 	ErrorToken(int line, int column, const std::string &raw, TokenType expectedType, ErrorType eType=unexpectedCharacter);
 	ErrorToken(int line, int column, TokenType gotType, TokenType expectedType);
 	ErrorToken(int line, int column, AssignType gotAssignType);
+	ErrorToken(int line, int column, ErrorType errorType);
 	TokenType getExpected() const {return expectedType;}
 	ErrorType getErrorType() const {return errorType;}
 	TokenType getGotType() const {return gotType;}

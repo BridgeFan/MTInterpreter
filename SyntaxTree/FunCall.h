@@ -10,7 +10,7 @@
 
 struct FunCall: public Line {
 	std::unique_ptr<IdToken> name;
-	std::vector<std::reference_wrapper<Expression> > params;
+	std::vector<std::shared_ptr<Expression> > params;
 };
 
 #endif //MTINTERPRETER_FUNCALL_H

@@ -15,3 +15,6 @@ ErrorToken::ErrorToken(int line, int column, TokenType gotType, TokenType expect
 ErrorToken::ErrorToken(int line, int column, AssignType gotAssignType): ErrorToken(line,column,"",Assign_,modifyAssignToUninitialized) {
 	this->gotAssignType=gotAssignType;
 }
+
+ErrorToken::ErrorToken(int line, int column, ErrorType errorType): ErrorToken(line,column,"",Id_,unexpectedParEnd) {
+}

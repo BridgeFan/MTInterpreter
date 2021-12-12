@@ -13,6 +13,9 @@ class Number: public Token {
 public:
 	Number(int line, int column, int64_t val);
 	Number(int line, int column, double val);
+	Number() = default;
+	Number(Number&)=default;
+	Number& operator=(const Number& op)=default;
 	const std::variant<int64_t, double>& getValue() const {return value;}
 };
 

@@ -7,6 +7,7 @@
 #include "../Scaner.h"
 #include "../Token/StringToken.h"
 #include "../Token/IdToken.h"
+#include "../Parser.h"
 
 Scaner initScaner(std::string&& value) {
 	std::unique_ptr<DataSource> source = std::make_unique<StringDataSource>(std::move(value));

@@ -12,6 +12,9 @@ class StringToken: public Token {
 public:
 	StringToken(int line, int column, const std::string &raw);
 	const std::string& getValue() const {return value;}
+	StringToken()=default;
+	StringToken(const StringToken&)=default;
+	StringToken& operator=(const StringToken&)=default;
 };
 
 
