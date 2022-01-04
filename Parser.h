@@ -6,7 +6,7 @@
 #define MTINTERPRETER_PARSER_H
 
 #include <optional>
-#include <queue>
+#include <stack>
 #include "SyntaxTree/Parameter.h"
 #include "SyntaxTree/Block.h"
 #include "SyntaxTree/FunctionNode.h"
@@ -26,7 +26,7 @@ enum ParserState: uint16_t {
 };
 
 class Parser {
-	std::deque<std::unique_ptr<Token> > prevTokens;
+	std::stack<std::unique_ptr<Token> > prevTokens;
 	Scaner& scaner;
 	std::vector<FunctionNode> functions;
 	std::vector<InitNode> globalVars;

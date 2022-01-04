@@ -30,8 +30,8 @@ Parser::Parser(Scaner&& scaner): scaner(scaner) {
 
 std::unique_ptr<Token> Parser::getNextToken() {
 	if(!prevTokens.empty()) {
-		auto token = std::move(prevTokens.front());
-		prevTokens.pop_front();
+		auto token = std::move(prevTokens.top());
+		prevTokens.pop();
 		return token;
 	}
 	else
@@ -69,14 +69,14 @@ void Parser::addError(const std::unique_ptr<Token>& token, ErrorType type, std::
 std::optional<Block> Parser::getBlock() {
 	auto beginToken = getNextToken();
 	if(checkToken(beginToken, BlockBegin_)!=noError) {
-		prevTokens.push_front(std::move(beginToken));
+		prevTokens.push(std::move(beginToken));
 		return std::nullopt;
 	}
 	Block block;
 	std::unique_ptr<Line> line;
 	std::unique_ptr<Token> token;
 	while((token=getNextToken()) && checkToken(token, {BlockEnd_,EndOfFile})==wrongToken) {
-		prevTokens.push_front(std::move(token));
+		prevTokens.push(std::move(token));
 		line=getLine();
 		if(!line) {
 			return block;
@@ -100,7 +100,7 @@ std::unique_ptr<Line> Parser::getLine() {
 	if(token->getType()==End_) {
 		return std::make_unique<Line>();
 	}
-	prevTokens.push_front(std::move(token));
+	prevTokens.push(std::move(token));
 	auto valIf = getIf();
 	if(valIf) {
 		return std::make_unique<IfNode>(std::move(*valIf));
@@ -127,6 +127,11 @@ std::unique_ptr<Line> Parser::getLine() {
 	}
 	auto valFunCall = getFunCall();
 	if(valFunCall) {
+		//we have to get end of line
+		token = getNextToken();
+		if(token->getType()!=End_) {
+			checkToken(token,End_);
+		}
 		return std::make_unique<FunCall>(std::move(*valFunCall));
 	}
 	auto retCall = getReturn();
@@ -140,21 +145,21 @@ std::optional<ReturnNode> Parser::getReturn() {
 	auto retToken = getNextToken();
 	ErrorType errorType;
 	if ((errorType = checkToken(retToken, Return_)) != noError) {
-		prevTokens.push_front(std::move(retToken));
+		prevTokens.push(std::move(retToken));
 		return std::nullopt;
 	}
 	//now we're sure that this is Return
 	auto token2 = getNextToken();
 	if(token2->getType()==End_)
 		return ReturnNode();
-	prevTokens.push_front(std::move(token2));
+	prevTokens.push(std::move(token2));
 	auto expr = getExpression();
 	if (!expr.first) {
 		return std::nullopt;
 	}
 	if(expr.second->getType()!=End_) {
 		addError(expr.second,wrongToken,{End_});
-		prevTokens.push_front(std::move(expr.second));
+		prevTokens.push(std::move(expr.second));
 	}
 	ReturnNode node;
 	node.returnedValue=std::move(expr.first);
@@ -165,13 +170,13 @@ std::optional<IfNode> Parser::getIf() {
 	auto ifToken = getNextToken();
 	ErrorType errorType;
 	if ((errorType=checkToken(ifToken, If_))!=noError) {
-		prevTokens.push_front(std::move(ifToken));
+		prevTokens.push(std::move(ifToken));
 		return std::nullopt;
 	}
 	//we are sure now that there should be if
 	auto token = getNextToken();
 	if((errorType=checkToken(token, ParBegin_))!=noError) {//assume that there is ParBegin
-		prevTokens.push_front(std::move(token));
+		prevTokens.push(std::move(token));
 	}
 	auto expr = getExpression();
 	if (!expr.first) {
@@ -179,7 +184,7 @@ std::optional<IfNode> Parser::getIf() {
 	}
 	if(expr.second->getType()!=ParEnd_) { //assume that ther is ParEnd
 		addError(expr.second,wrongToken,{ParEnd_});
-		prevTokens.push_front(std::move(expr.second));
+		prevTokens.push(std::move(expr.second));
 	}
 	IfNode node;
 	auto block = getLine();
@@ -209,7 +214,7 @@ std::optional<IfNode> Parser::getIf() {
 		return node;
 	}
 	else {
-		prevTokens.push_front(std::move(token3));
+		prevTokens.push(std::move(token3));
 		node.elseStat=std::nullopt;
 	}
 	return node;
@@ -219,14 +224,14 @@ std::optional<WhileNode> Parser::getWhile() {
 	auto ifToken = getNextToken();
 	ErrorType errorType;
 	if ((errorType=checkToken(ifToken, While_))!=noError) {
-		prevTokens.push_front(std::move(ifToken));
+		prevTokens.push(std::move(ifToken));
 		return std::nullopt;
 	}
 	//we are sure now that there should be while
 	auto token = getNextToken();
 	if((errorType=checkToken(token, ParBegin_))!=noError) {//assume that there is ParBegin
 		addError(token, errorType, {ParBegin_});
-		prevTokens.push_front(std::move(token));
+		prevTokens.push(std::move(token));
 	}
 	auto expr = getExpression();
 	if (!expr.first) {
@@ -234,7 +239,7 @@ std::optional<WhileNode> Parser::getWhile() {
 	}
 	if(expr.second->getType()!=ParEnd_) {
 		addError(expr.second,wrongToken,{ParEnd_});
-		prevTokens.push_front(std::move(expr.second));
+		prevTokens.push(std::move(expr.second));
 	}
 	WhileNode node;
 	auto block = getLine();
@@ -254,21 +259,21 @@ std::optional<ForNode> Parser::getFor() {
 	auto forToken = getNextToken();
 	ErrorType errorType;
 	if ((errorType=checkToken(forToken, For_))!=noError) {
-		prevTokens.push_front(std::move(forToken));
+		prevTokens.push(std::move(forToken));
 		return std::nullopt;
 	}
 	//we are sure now that there should be for
 	auto token = getNextToken();
 	if ((errorType=checkToken(token, ParBegin_))!=noError) {
 		addError(token, errorType, {ParBegin_});
-		prevTokens.push_front(std::move(token));
+		prevTokens.push(std::move(token));
 	}
 	ForNode node;
 	auto token2 = getNextToken();
 	if(token2->getType()==Error_)
 		return std::nullopt;
 	if(token2->getType()!=End_) {
-		prevTokens.push_front(std::move(token2));
+		prevTokens.push(std::move(token2));
 		auto assignNode = getAssign();
 		if(!assignNode)
 			return std::nullopt;
@@ -280,7 +285,7 @@ std::optional<ForNode> Parser::getFor() {
 	}
 	if(expr.second->getType()!=ParEnd_) {
 		addError(expr.second,wrongToken,{End_});
-		prevTokens.push_front(std::move(expr.second));
+		prevTokens.push(std::move(expr.second));
 	}
 	node.condition = std::move(expr.first);
 
@@ -288,7 +293,7 @@ std::optional<ForNode> Parser::getFor() {
 	if(!token3)
 		return std::nullopt;
 	if(token3->getType()!=ParEnd_) {
-		prevTokens.push_front(std::move(token3));
+		prevTokens.push(std::move(token3));
 		auto assignNode = getAssign();
 		if(!assignNode)
 			return std::nullopt;
@@ -310,7 +315,7 @@ std::optional<InitNode> Parser::getInit() {
 	auto token = getNextToken();
 	ErrorType errorType = checkToken(token, TypeName_);
 	if(errorType!=noError) {
-		prevTokens.push_front(std::move(token));
+		prevTokens.push(std::move(token));
 		return std::nullopt;
 	}
 	std::unique_ptr<Token> token2;
@@ -322,8 +327,8 @@ std::optional<InitNode> Parser::getInit() {
 		token2 = getNextToken();
 		errorType=checkToken(token2,Id_);
 		if(errorType!=noError) {
-			prevTokens.push_front(std::move(token2));
 			addError(token2, errorType, {Id_});
+			prevTokens.push(std::move(token2));
 			break;
 		}
 		token = getNextToken();
@@ -331,13 +336,13 @@ std::optional<InitNode> Parser::getInit() {
 		if(errorType!=noError) {
 			if(wasAnyVar) { //assume that there should be end of line
 				addError(token, errorType, {End_, Comma_, Assign_});
-				prevTokens.push_front(std::move(token));
+				prevTokens.push(std::move(token));
 				break;
 			}
 			else { //it can be function node
-				prevTokens.push_front(std::move(token));
-				prevTokens.push_front(std::move(token2));
-				prevTokens.push_front(std::move(token3));
+				prevTokens.push(std::move(token));
+				prevTokens.push(std::move(token2));
+				prevTokens.push(std::move(token3));
 				return std::nullopt;
 			}
 		}
@@ -355,8 +360,8 @@ std::optional<InitNode> Parser::getInit() {
 			}
 			if(checkToken(expr.second,{Comma_, End_})!=noError) {
 				addError(expr.second,wrongToken,{Comma_, End_});
-				prevTokens.push_front(std::move(expr.second));
 			}
+			prevTokens.push(std::move(expr.second));
 			node.vars.emplace_back(dynamic_cast<IdToken*>(token2.get())->getValue(),std::move(expr.first));
 			token=getNextToken();
 		}
@@ -439,7 +444,7 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 			isMinusUnary=false;
 			/*if(token2->getType()==EndOfFile || token2->getType()==Error_)
 				break;*/
-			prevTokens.push_front(std::move(token));
+			prevTokens.push(std::move(token));
 			auto fun = getFunCall();
 			if(fun) {
 				//function call
@@ -466,16 +471,16 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 				ErrorType token3Error = checkToken(token3, ParEnd_);
 				if(token3Error!=noError) {
 					addError(token3,token3Error, {ParEnd_});
-					prevTokens.push_front(std::move(token3));
+					prevTokens.push(std::move(token3));
 				}
 				auto token22 = std::unique_ptr<TypeName>(dynamic_cast<TypeName*>(token2.release()));
 				if(token22->getSubtype()==TypeNameType::intType)
-					prevTokens.push_front(std::make_unique<Conversion>(token->getLine(),token->getColumn(),toInt));
+					prevTokens.push(std::make_unique<Conversion>(token->getLine(),token->getColumn(),toInt));
 				else
-					prevTokens.push_front(std::make_unique<Conversion>(token->getLine(),token->getColumn(),toDouble));
+					prevTokens.push(std::make_unique<Conversion>(token->getLine(),token->getColumn(),toDouble));
 			}
 			else {
-				prevTokens.push_front(std::move(token2));
+				prevTokens.push(std::move(token2));
 				stack.emplace(std::move(token),true);
 			}
 		}
@@ -593,13 +598,13 @@ std::optional<FunCall> Parser::getFunCall() {
 	auto funName = getNextToken();
 	ErrorType errorType;
 	if ((errorType=checkToken(funName, Id_))!=noError) {
-		prevTokens.push_front(std::move(funName));
+		prevTokens.push(std::move(funName));
 		return std::nullopt;
 	}
 	auto parBeginToken = getNextToken();
 	if ((errorType=checkToken(parBeginToken, ParBegin_))!=noError) {
-		prevTokens.push_front(std::move(parBeginToken));
-		prevTokens.push_front(std::move(funName));
+		prevTokens.push(std::move(parBeginToken));
+		prevTokens.push(std::move(funName));
 		return std::nullopt;
 	}
 	//now we are sure that this is function call
@@ -609,14 +614,14 @@ std::optional<FunCall> Parser::getFunCall() {
 	if(!token)
 		return std::nullopt;
 	while(token->getType()!=ParEnd_) {
-		prevTokens.push_front(std::move(token));
+		prevTokens.push(std::move(token));
 		auto expr = getExpression();
 		if (!expr.first) {
 			return std::nullopt;
 		}
 		if(checkToken(expr.second,{Comma_, ParEnd_})!=noError) {
 			addError(expr.second,wrongToken,{Comma_, ParEnd_});
-			prevTokens.push_front(std::move(expr.second));
+			prevTokens.push(std::move(expr.second));
 		}
 		token=std::move(expr.second);
 		call.params.emplace_back(std::move(expr.first));
@@ -641,7 +646,7 @@ ParserState Parser::parseNext() {
 	auto token = scaner.getNextToken();
 	if(token->getType()==EndOfFile)
 		return finished;
-	prevTokens.push_front(std::move(token));
+	prevTokens.push(std::move(token));
 	return error;
 }
 
@@ -664,14 +669,14 @@ std::optional<AssignNode> Parser::getAssign() {
 	assignToken1 = getNextToken();
 	ErrorType errorType;
 	if ((errorType=checkToken(assignToken1, Id_))!=noError) {
-		prevTokens.push_front(std::move(assignToken1));
+		prevTokens.push(std::move(assignToken1));
 		return std::nullopt;
 	}
 	assignNode.id = dynamic_cast<IdToken *>(assignToken1.get())->getValue();
 	assignToken2 = getNextToken();
 	if ((errorType=checkToken(assignToken2, Assign_))!=noError) {
-		prevTokens.push_front(std::move(assignToken2));
-		prevTokens.push_front(std::move(assignToken1));
+		prevTokens.push(std::move(assignToken2));
+		prevTokens.push(std::move(assignToken1));
 		return std::nullopt;
 	}
 	assignNode.type = (AssignNodeType)dynamic_cast<Assign *>(assignToken2.get())->getSubtype();
@@ -682,7 +687,7 @@ std::optional<AssignNode> Parser::getAssign() {
 	}
 	if(expr.second->getType()!=End_) {
 		addError(expr.second,wrongToken,{End_});
-		prevTokens.push_front(std::move(expr.second));
+		prevTokens.push(std::move(expr.second));
 	}
 	assignNode.expression = std::move(expr.first);
 	return assignNode;
@@ -691,19 +696,19 @@ std::optional<AssignNode> Parser::getAssign() {
 std::optional<FunctionNode> Parser::getFunction() {
 	auto typeToken = getNextToken();
 	if(checkToken(typeToken, {TypeName_, Void_})!=noError) {
-		prevTokens.push_front(std::move(typeToken));
+		prevTokens.push(std::move(typeToken));
 		return std::nullopt;
 	}
 	auto idToken = getNextToken();
 	if(checkToken(idToken, Id_)!=noError) {
-		prevTokens.push_front(std::move(idToken));
-		prevTokens.push_front(std::move(typeToken));
+		prevTokens.push(std::move(idToken));
+		prevTokens.push(std::move(typeToken));
 		return std::nullopt;
 	}
 	auto params = getParameters();
 	if(!params.first) {
-		prevTokens.push_front(std::move(idToken));
-		prevTokens.push_front(std::move(typeToken));
+		prevTokens.push(std::move(idToken));
+		prevTokens.push(std::move(typeToken));
 		return std::nullopt;
 	}
 	//(_return_type | void) id Parameters Block
@@ -725,7 +730,7 @@ std::optional<FunctionNode> Parser::getFunction() {
 std::pair<bool, std::vector<Parameter> > Parser::getParameters() {
 	auto beginToken = getNextToken();
 	if(checkToken(beginToken, ParBegin_)!=noError) {
-		prevTokens.push_front(std::move(beginToken));
+		prevTokens.push(std::move(beginToken));
 		return {false, {}};
 	}
 	std::unique_ptr<Token> token;
@@ -737,7 +742,7 @@ std::pair<bool, std::vector<Parameter> > Parser::getParameters() {
 		if (errorType!=noError) {
 			addError(name, errorType, {Id_});
 			if(errorType==wrongToken)
-				prevTokens.push_front(std::move(name));
+				prevTokens.push(std::move(name));
 			name = std::make_unique<IdToken>(-1,-1,"");
 		}
 		params.emplace_back((TypeType)(dynamic_cast<TypeName *>(token.get())->getSubtype()),
