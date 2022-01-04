@@ -6,14 +6,19 @@
 #define MTINTERPRETER_PARAMETER_H
 
 #include <memory>
-#include "../Token/TypeName.h"
-#include "../Token/IdToken.h"
+#include <utility>
+#include <string>
 #include "Line.h"
 
+enum TypeType: uint16_t;
+
 struct Parameter: public Line {
-	TypeName type;
-	IdToken name;
-	Parameter(const TypeName& type, const IdToken& name): type(type), name(name) {}
+	TypeType type;
+	std::string name;
+	Parameter(const TypeType& type, std::string name): type(type), name(std::move(name)) {}
+	virtual void accept(Visitor& visitor) override {
+		visitor.visit(*this);
+	}
 };
 
 

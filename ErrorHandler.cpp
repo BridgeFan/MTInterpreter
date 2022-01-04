@@ -5,6 +5,7 @@
 #include <iostream>
 #include <map>
 #include "ErrorHandler.h"
+#include "SyntaxTree/InitNode.h"
 std::map<TokenType, std::string> tokenTypeNames;
 std::vector<std::pair<ErrorPlace, std::string> > ErrorHandler::errorInfo;
 int ErrorHandler::limit = 1024;
@@ -56,7 +57,7 @@ void ErrorHandler::addError(ErrorPlace place, const ErrorToken& token) {
 			str+="Unexpected end of file but expected ";
 			str+=tokenTypeNames[token.getExpected()]+" type";
 			break;
-		case ErrorType::unexpectedToken:
+		case ErrorType::wrongToken:
 			str+="Expected token of type " + tokenTypeNames[token.getExpected()] + " but got " + tokenTypeNames[token.getGotType()];
 			break;
 		case ErrorType::wrongEnd:
@@ -92,8 +93,12 @@ void ErrorHandler::showErrors(std::ostream& okOut, std::ostream& out) {
 	for(auto&& [place, str]: errorInfo) {
 		if(place==ScanerError)
 			out << "Scaner error: ";
-		if(place==ParserError)
+		else if(place==ParserError)
 			out << "Parser error: ";
+		else if(place==SemanticError)
+			out << "Semantic error: ";
+		else
+			out << "Runtime error: ";
 		out << str << "\n";
 	}
 }
@@ -110,3 +115,37 @@ void ErrorHandler::setLimit(int a) {
 		exit(EXIT_FAILURE);
 	}
 }
+
+void ErrorHandler::addSemanticError(SemanticErrorType type, const std::string& func, const std::string& name) {
+	std::string str;
+	if(!func.empty())
+		str="Function "+func+": ";
+	switch(type) {
+		case AlreadyDeclaredVariable:
+			errorInfo.emplace_back(SemanticError, str+"Already declared variable " + name);
+		case AlreadyDeclaredFunction:
+			errorInfo.emplace_back(SemanticError, str+"Already declared function " + name);
+		case NotDeclaredVariable:
+			errorInfo.emplace_back(SemanticError, str+"Already declared variable " + name);
+		case NotDeclaredFunction:
+			errorInfo.emplace_back(SemanticError, str+"Already declared function " + name);
+		case IllegalFunctionName:
+			errorInfo.emplace_back(SemanticError, "Illegal function name " + name);
+		case WrongMain:
+			errorInfo.emplace_back(SemanticError,
+								   "Main function not correct. It should have no parameter and return int");
+	}
+}
+
+std::string toString(TypeType type);
+
+void ErrorHandler::addWrongAssignError(const std::string &func, const std::string &name, TypeType varType,
+                                       TypeType gotType) {
+	errorInfo.emplace_back(SemanticError, "Function "+func+": Wrong assigned type "+toString(gotType)+" ("+name+" type is "+toString(varType)+")");
+}
+
+void ErrorHandler::addWrongReturnError(const std::string &func, TypeType varType,
+                                       TypeType gotType) {
+	errorInfo.emplace_back(SemanticError, "Function "+func+": Wrong return type "+toString(gotType)+" (should be "+toString(varType)+")");
+}
+

@@ -11,6 +11,9 @@
 struct WhileNode: public Line {
 	std::unique_ptr<Expression> condition;
 	Block stat;
+	void accept(Visitor& visitor) override {
+		visitor.visit(*this);
+	}
 };
 
 #endif //MTINTERPRETER_WHILENODE_H

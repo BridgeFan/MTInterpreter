@@ -6,6 +6,7 @@
 #define MTINTERPRETER_PARSER_H
 
 #include <optional>
+#include <queue>
 #include "SyntaxTree/Parameter.h"
 #include "SyntaxTree/Block.h"
 #include "SyntaxTree/FunctionNode.h"
@@ -17,26 +18,36 @@
 #include "Scaner.h"
 #include "SyntaxTree/SyntaxTree.h"
 
+enum ErrorType: uint16_t;
+enum ParserState: uint16_t {
+	correct=0u,
+	finished=1u,
+	error=2u
+};
+
 class Parser {
-	bool wasWrongType=false;
-	std::unique_ptr<Token> prevToken=nullptr;
+	std::deque<std::unique_ptr<Token> > prevTokens;
 	Scaner& scaner;
 	std::vector<FunctionNode> functions;
 	std::vector<InitNode> globalVars;
-	std::optional<AssignNode> getAssign(std::vector<std::unique_ptr<Token> > tokens={});
+	std::optional<AssignNode> getAssign();
 	std::optional<Block> getBlock();
-	std::unique_ptr<Line> getLine(std::unique_ptr<Token> token=nullptr);
+	std::unique_ptr<Line> getLine();
 	std::optional<IfNode> getIf();
 	std::optional<WhileNode> getWhile();
 	std::optional<ForNode> getFor();
-	std::optional<FunCall> getFunCall(std::unique_ptr<IdToken> funName);
-	std::optional<InitNode> getInit(std::unique_ptr<TypeName> typeToken, std::unique_ptr<IdToken> idToken=nullptr);
-	std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > getExpression(const std::vector<TokenType>& allowedEnds, std::unique_ptr<Token> firstToken=nullptr);
-	std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > getExpression(TokenType allowedEnd, std::unique_ptr<Token> firstToken=nullptr) {return getExpression(std::vector({allowedEnd}),std::move(firstToken));}
-	std::unique_ptr<Token> getScanerToken(std::vector<TokenType> allowedTypes);
-	std::unique_ptr<Token> getScanerToken(TokenType type) {return getScanerToken(std::vector({type}));}
+	std::optional<FunctionNode> getFunction();
+	std::pair<bool, std::vector<Parameter> > getParameters();
+	std::optional<FunCall> getFunCall();
+	std::optional<InitNode> getInit();
+	std::optional<ReturnNode> getReturn();
+	std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > getExpression();
+	std::unique_ptr<Token> getNextToken();
+	void addError(const std::unique_ptr<Token>& token, ErrorType type, std::vector<TokenType> allowedTypes={});
+	ErrorType checkToken(const std::unique_ptr<Token>& token, std::vector<TokenType> allowedTypes);
+	ErrorType checkToken(const std::unique_ptr<Token>& token, TokenType type) {return checkToken(token, std::vector({type}));}
 public:
-	bool parseNext();
+	ParserState parseNext();
 	explicit Parser(Scaner& scaner);
 	explicit Parser(Scaner&& scaner);
 	SyntaxTree parse();

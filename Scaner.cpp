@@ -164,7 +164,7 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 		getNextChar();
 	}
 	if(hasEnded() && actualChar==eof)
-		return {};
+		return std::make_unique<Token>(EndOfFile, line, col); //EndOfFile token
 	internal="";
 	int retLine=line;
 	int retCol=col;

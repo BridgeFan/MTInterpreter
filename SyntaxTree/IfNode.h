@@ -13,6 +13,9 @@ struct IfNode: public Line {
 	std::unique_ptr<Expression> condition;
 	Block stat;
 	std::optional<Block> elseStat;
+	void accept(Visitor& visitor) override {
+		visitor.visit(*this);
+	}
 };
 
 #endif //MTINTERPRETER_IFNODE_H

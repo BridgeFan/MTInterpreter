@@ -16,6 +16,9 @@ struct ForNode: public Line {
 	std::optional<AssignNode> assignNodePre, assignNodeEach;
 	Block stat;
 	ForNode()=default;
+	void accept(Visitor& visitor) override {
+		visitor.visit(*this);
+	}
 };
 
 #endif //MTINTERPRETER_FORNODE_H

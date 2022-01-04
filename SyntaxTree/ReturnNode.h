@@ -12,6 +12,9 @@ struct ReturnNode: public Line {
 	ReturnNode(): returnedValue(nullptr) {}
 	ReturnNode(Expression& expr): returnedValue(&expr) {}
 	std::unique_ptr<Expression> returnedValue;
+	void accept(Visitor& visitor) override {
+		visitor.visit(*this);
+	}
 };
 
 #endif //MTINTERPRETER_RETURNNODE_H

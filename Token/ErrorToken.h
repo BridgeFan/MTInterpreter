@@ -9,10 +9,12 @@
 #include "Assign.h"
 
 enum ErrorType: uint16_t {
+	noError=0u, //special state for no error
+	errorToken,
 	unexpectedCharacter,
 	overflow, //too great value or too long name
 	unexpectedEof,
-	unexpectedToken,
+	wrongToken,
 	wrongEnd,
 	modifyAssignToUninitialized,
 	unexpectedParEnd,

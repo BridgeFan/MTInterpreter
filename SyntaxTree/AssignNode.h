@@ -5,14 +5,24 @@
 #ifndef MTINTERPRETER_ASSIGNNODE_H
 #define MTINTERPRETER_ASSIGNNODE_H
 
-#include "../Token/Assign.h"
 #include "Expression.h"
 #include "Line.h"
-
-struct AssignNode: public Line {
-	std::unique_ptr<IdToken> id;
-	std::unique_ptr<Assign> assign;
-	std::unique_ptr<Expression> expression;
+enum AssignNodeType: uint16_t {
+	assign2,
+	addAssign2,
+	minusAssign2,
+	multAssign2,
+	divAssign2,
+	moduloAssign2,
 };
 
-#endif //MTINTERPRETER_ASSIGN_H
+struct AssignNode: public Line {
+	std::string id;
+	AssignNodeType type;
+	std::unique_ptr<Expression> expression;
+	void accept(Visitor& visitor) override {
+		visitor.visit(*this);
+	}
+};
+
+#endif //MTINTERPRETER_ASSIGNNODE_H

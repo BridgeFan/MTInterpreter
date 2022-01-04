@@ -13,7 +13,19 @@
 enum ErrorPlace: uint16_t {
 	ScanerError,
 	ParserError,
+	SemanticError,
+	RuntimeError
 };
+
+enum SemanticErrorType: uint16_t {
+	AlreadyDeclaredVariable,
+	AlreadyDeclaredFunction,
+	IllegalFunctionName,
+	WrongMain,
+	NotDeclaredVariable,
+	NotDeclaredFunction
+};
+enum TypeType: uint16_t;
 
 
 class ErrorHandler {
@@ -22,6 +34,10 @@ class ErrorHandler {
 public:
 	static int getErrorSize();
 	static void addError(ErrorPlace place, const ErrorToken& token);
+	static void addSemanticError(SemanticErrorType type, const std::string& func, const std::string& name);
+	static void addWrongAssignError(const std::string& func, const std::string& name, TypeType varType, TypeType gotType);
+	static void addWrongReturnError(const std::string& func, TypeType varType, TypeType gotType);
+	static void addSemanticError(SemanticErrorType type, const std::string& name) {addSemanticError(type,"",name);}
 	static void showErrors(std::ostream& okOut, std::ostream& out);
 	static void clear();
 	static void setLimit(int a);

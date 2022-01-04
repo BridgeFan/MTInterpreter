@@ -13,6 +13,9 @@
 
 struct Block: public Line {
 	std::vector<std::shared_ptr<Line> > lines;
+	void accept(Visitor& visitor) override {
+		visitor.visit(*this);
+	}
 };
 
 #endif //MTINTERPRETER_BLOCKNODE_H
