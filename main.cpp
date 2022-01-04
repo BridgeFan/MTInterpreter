@@ -9,6 +9,7 @@
 #include "Parser.h"
 #include "SyntaxTree/MappedSyntaxTree.h"
 #include "Interpreter/SemanticAnalizer.h"
+#include "Interpreter/Interpreter.h"
 
 int main(int argc, char** argv) {
 	//Conversion token will be created in parser, not in scaner to reduce wrong interpretation
@@ -41,28 +42,31 @@ int main(int argc, char** argv) {
 	}*/
 	//dataSource = std::make_unique<StringDataSource>("int b,c;\ndouble e;\nint f(){}");
 	ErrorHandler::setLimit(100);
-	dataSource = std::make_unique<StringDataSource>("int a; int main(){}");
+	dataSource = std::make_unique<StringDataSource>("int a; int main(){return 0;}");
 	Scaner scaner(std::move(dataSource));
 	Parser parser(scaner);
-	if(ErrorHandler::getErrorSize()>0) {
-		std::cerr << "An error occured parsing file\n";
-		ErrorHandler::showErrors(std::cout, std::cerr);
-		return 0;
-	}
+	bool wereParserErrors = ErrorHandler::getErrorSize()>0;
 	SyntaxTree tree = parser.parse();
 	MappedSyntaxTree mapped;
 	if(!mapped.mapTree(tree)) {
-		std::cerr << "An error occured mapping syntax tree\n";
+		if(wereParserErrors)
+			std::cerr << "An error occured parsing file\n";
+		else
+			std::cerr << "An error occured mapping syntax tree\n";
 		ErrorHandler::showErrors(std::cout, std::cerr);
 		return 0;
 	}
 	SemanticAnalizer analizer;
-	if(!analizer.analize(mapped)) {
+	if(!analizer.visitTree(mapped)) {
 		std::cerr << "An error occured making semantic analysis\n";
 		ErrorHandler::showErrors(std::cout, std::cerr);
 		return 0;
 	}
-	std::cout << "Ready for interpreting\n";
-	ErrorHandler::showErrors(std::cout,std::cerr);
+	std::cout << "No compilation errors. Ready for interpreting\n";
+	Interpreter interpreter;
+	if(!interpreter.visitTree(mapped)) {
+		std::cerr << "An runtime error occured\n";
+		ErrorHandler::showErrors(std::cout,std::cerr);
+	}
 	return 0;
 }

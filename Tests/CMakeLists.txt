@@ -20,7 +20,7 @@ add_executable(Google_Tests_run Test.cpp
         ../Token/Conversion.cpp
         ../Token/StringToken.cpp
         ../Token/Number.cpp
-        ../Token/ErrorToken.cpp ../Token/Util.cpp ../Parser.cpp ../Interpreter/SemanticAnalizer.cpp ../Interpreter/SemanticAnalizer.h)
+        ../Token/ErrorToken.cpp ../Token/Util.cpp ../Parser.cpp ../Interpreter/SemanticAnalizer.cpp ../Interpreter/SemanticAnalizer.h ../Interpreter/Interpreter.cpp ../Interpreter/Interpreter.h ../Interpreter/InterpreterExpressionTree.cpp)
 
 # linking Google_Tests_run with DateConverter_lib which will be tested
 target_link_libraries(Google_Tests_run gtest gtest_main pthread)

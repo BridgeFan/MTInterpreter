@@ -8,9 +8,16 @@
 #include <cstdint>
 #include <variant>
 #include <string>
+#include <cmath>
+#include "../SyntaxTree/Expression.h"
+#include "../SyntaxTree/InitNode.h"
+
 
 enum TypeType: uint16_t;
 typedef std::variant<int64_t, double, std::nullptr_t, std::string> InterpreterValue;
+
+InterpreterValue getBinaryOperationValue(const InterpreterValue& value1, const InterpreterValue& value2, OperatorType type);
+InterpreterValue getUnaryOperationValue(const InterpreterValue& value, OperatorType type);
 
 class InterpreterExpressionTree {
 private:

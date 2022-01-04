@@ -29,7 +29,7 @@ std::string toString(TypeType type) {
 	return "";
 }
 
-bool SemanticAnalizer::analize(MappedSyntaxTree &tree) {
+bool SemanticAnalizer::visitTree(MappedSyntaxTree &tree) {
 	depth=0;
 	syntaxTree=&tree;
 	for(auto&& [name, var]: tree.globalVars) {
@@ -128,7 +128,7 @@ void SemanticAnalizer::visit(ReturnNode &node) {
 		return;
 	}
 	node.returnedValue->accept(*this);
-	if((expressionTree->type==double_ && functionReturned==int_) || expressionTree->type==string_) {
+	if((expressionTree->type==int_ && functionReturned!=int_) || expressionTree->type==string_) {
 		ErrorHandler::addWrongReturnError(actualFunction,functionReturned, expressionTree->type);
 	}
 	expressionTree=std::nullopt;
@@ -199,6 +199,8 @@ void SemanticAnalizer::visit(Expression &node) {
 			else
 				ErrorHandler::addIllegalOperationError(actualFunction,node.op,type1,type2);
 		}
+		expressionTree->unsetLeft();
+		expressionTree->unsetRight();
 		return;
 	}
 	//number operations
@@ -243,6 +245,8 @@ void SemanticAnalizer::visit(Expression &node) {
 		case none:
 			break;
 	}
+	expressionTree->unsetLeft();
+	expressionTree->unsetRight();
 }
 
 void SemanticAnalizer::visit(NumberExpression &node) {
@@ -312,7 +316,6 @@ void SemanticAnalizer::visit(InitNode &node) {
 		}
 		expressionTree=std::nullopt;
 	}
-
 }
 
 void SemanticAnalizer::visit(LoopModLine &node) {
