@@ -8,6 +8,7 @@
 #include "ErrorHandler.h"
 #include "Parser.h"
 #include "SyntaxTree/MappedSyntaxTree.h"
+#include "Interpreter/SemanticAnalizer.h"
 
 int main(int argc, char** argv) {
 	//Conversion token will be created in parser, not in scaner to reduce wrong interpretation
@@ -43,9 +44,25 @@ int main(int argc, char** argv) {
 	dataSource = std::make_unique<StringDataSource>("int a; int main(){}");
 	Scaner scaner(std::move(dataSource));
 	Parser parser(scaner);
+	if(ErrorHandler::getErrorSize()>0) {
+		std::cerr << "An error occured parsing file\n";
+		ErrorHandler::showErrors(std::cout, std::cerr);
+		return 0;
+	}
 	SyntaxTree tree = parser.parse();
 	MappedSyntaxTree mapped;
-	mapped.mapTree(tree);
+	if(!mapped.mapTree(tree)) {
+		std::cerr << "An error occured mapping syntax tree\n";
+		ErrorHandler::showErrors(std::cout, std::cerr);
+		return 0;
+	}
+	SemanticAnalizer analizer;
+	if(!analizer.analize(mapped)) {
+		std::cerr << "An error occured making semantic analysis\n";
+		ErrorHandler::showErrors(std::cout, std::cerr);
+		return 0;
+	}
+	std::cout << "Ready for interpreting\n";
 	ErrorHandler::showErrors(std::cout,std::cerr);
 	return 0;
 }

@@ -12,6 +12,7 @@
 #include "Token/MultOp.h"
 #include "Token/RelOp.h"
 #include "Token/LogicOp.h"
+#include "Token/LoopMod.h"
 #include <algorithm>
 #include <utility>
 #include <iostream>
@@ -60,7 +61,7 @@ void Parser::addError(const std::unique_ptr<Token>& token, ErrorType type, std::
 		case errorToken:
 			//error already added by getNextToken()
 			break;
-		default: //TODO
+		default:
 			break;
 	}
 
@@ -137,6 +138,10 @@ std::unique_ptr<Line> Parser::getLine() {
 	auto retCall = getReturn();
 	if(retCall) {
 		return std::make_unique<ReturnNode>(std::move(*retCall));
+	}
+	auto loopMod = getLoopMod();
+	if(loopMod) {
+		return std::make_unique<LoopModLine>(std::move(*loopMod));
 	}
 	token = getNextToken();
 	ErrorHandler::addError(ErrorPlace::ParserError, ErrorToken(token->getLine(), token->getColumn(), unexpectedCharacter));
@@ -757,4 +762,14 @@ std::pair<bool, std::vector<Parameter> > Parser::getParameters() {
 		prevTokens.push(std::move(token));
 	}
 	return {true, params};
+}
+
+std::optional<LoopModLine> Parser::getLoopMod() {
+	auto retToken = getNextToken();
+	ErrorType errorType;
+	if ((errorType = checkToken(retToken, LoopMod_)) != noError) {
+		prevTokens.push(std::move(retToken));
+		return std::nullopt;
+	}
+	return LoopModLine((LoopModT)dynamic_cast<LoopMod*>(retToken.get())->getSubtype());
 }

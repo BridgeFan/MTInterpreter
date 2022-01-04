@@ -21,6 +21,7 @@ class Parameter;
 class Line;
 class WhileNode;
 class MappedSyntaxTree;
+class LoopModLine;
 
 class Visitor {
 public:
@@ -39,7 +40,7 @@ public:
 	virtual void visit(Parameter& node) = 0;
 	virtual void visit(Line& node) = 0;
 	virtual void visit(WhileNode& node) = 0;
-	virtual bool visitTree(MappedSyntaxTree& tree) = 0;
+	virtual void visit(LoopModLine& node) = 0;
 };
 
 #endif //MTINTERPRETER_VISITOR_H

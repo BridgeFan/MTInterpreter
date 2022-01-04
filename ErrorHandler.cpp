@@ -6,6 +6,7 @@
 #include <map>
 #include "ErrorHandler.h"
 #include "SyntaxTree/InitNode.h"
+#include "SyntaxTree/Expression.h"
 std::map<TokenType, std::string> tokenTypeNames;
 std::vector<std::pair<ErrorPlace, std::string> > ErrorHandler::errorInfo;
 int ErrorHandler::limit = 1024;
@@ -139,13 +140,68 @@ void ErrorHandler::addSemanticError(SemanticErrorType type, const std::string& f
 
 std::string toString(TypeType type);
 
-void ErrorHandler::addWrongAssignError(const std::string &func, const std::string &name, TypeType varType,
-                                       TypeType gotType) {
+void ErrorHandler::addWrongAssignError(const std::string& func, const std::string& name, TypeType varType, TypeType gotType) {
 	errorInfo.emplace_back(SemanticError, "Function "+func+": Wrong assigned type "+toString(gotType)+" ("+name+" type is "+toString(varType)+")");
 }
 
-void ErrorHandler::addWrongReturnError(const std::string &func, TypeType varType,
-                                       TypeType gotType) {
+void ErrorHandler::addWrongConditionError(const std::string &func, const std::string& name, TypeType gotType) {
+	errorInfo.emplace_back(SemanticError, "Function "+func+": Wrong condition in "+name+" of type "+toString(gotType)+" (should be int)");
+}
+
+void ErrorHandler::addWrongParameterError(const std::string &func, const std::string &name, int index, TypeType varType, TypeType gotType) {
+	errorInfo.emplace_back(SemanticError, "Function "+func+": Wrong parameter "+std::to_string(index)+" for calling function"+name+"Expected parameter of type "+toString(gotType)+" ("+name+" but got "+toString(varType)+")");
+}
+
+void ErrorHandler::addWrongReturnError(const std::string &func, TypeType varType, TypeType gotType) {
 	errorInfo.emplace_back(SemanticError, "Function "+func+": Wrong return type "+toString(gotType)+" (should be "+toString(varType)+")");
+}
+
+void ErrorHandler::addWrongParameterError(const std::string &func, const std::string &name, int expectedSize, int gotSize) {
+	errorInfo.emplace_back(SemanticError, "Function "+func+": Expected "+std::to_string(expectedSize)+" parameters but got"+std::to_string(gotSize));
+}
+
+std::string toString(OperatorType type) {
+	switch(type) {
+		case none: return "";
+		case negation: return "!";
+		case minus: return "-";
+		case add: return "+";
+		case mult: return "*";
+		case divi: return "/";
+		case mod: return "%";
+		case eq: return "==";
+		case neq: return "!=";
+		case mor: return ">";
+		case meq: return ">=";
+		case les: return "<";
+		case leq: return "<=";
+		case Or: return "||";
+		case And: return "&&";
+		case toIntConversion: return "(int)";
+		case toDoubleConversion: return "(double)";
+	}
+}
+
+std::string toString(LoopModT type) {
+	switch(type) {
+		case continueType: return "continue";
+		case breakType: return "break";
+	}
+
+}
+
+void ErrorHandler::addIllegalOperationError(const std::string &func, OperatorType type, TypeType varType1,
+                                            TypeType varType2) {
+	errorInfo.emplace_back(SemanticError, "Function "+func+": Illegal operation "+toString(type)+" for parameter types "+toString(varType1)+" and "+toString(varType2));
+
+}
+
+void ErrorHandler::addIllegalOperationError(const std::string &func, OperatorType type, TypeType varType) {
+	errorInfo.emplace_back(SemanticError, "Function "+func+": Illegal operation "+toString(type)+" for parameter type "+toString(varType));
+
+}
+
+void ErrorHandler::addUncoveredLoopMod(const std::string &func, LoopModT type) {
+	errorInfo.emplace_back(SemanticError, "Function "+func+": Uncatched loop modifier "+toString(type));
 }
 

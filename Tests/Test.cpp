@@ -14,6 +14,7 @@
 #include "../Token/LogicOp.h"
 #include "../Token/Conversion.h"
 #include "../Token/ErrorToken.h"
+#include "../Token/LoopMod.h"
 #include "../ErrorHandler.h"
 #include "../Parser.h"
 
@@ -1124,6 +1125,26 @@ TEST(ParserTest, ReturnTest) {
 	ASSERT_EQ(typeid(*l),typeid(ReturnNode));
 	auto ret = dynamic_cast<ReturnNode*>(l.get());
 	ASSERT_FALSE(bool(ret->returnedValue));
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+}
+
+TEST(ParserTest, LoopModTest) {
+	ErrorHandler::clear();
+	Scaner scaner = initScaner("void f(){continue;}");
+	Parser parser(scaner);
+	SyntaxTree result = parser.parse();
+	ASSERT_EQ(result.globalVars.size(), 0);
+	ASSERT_EQ(result.functions.size(), 1);
+	const auto& f = result.functions[0];
+	ASSERT_EQ(f.returnedType, void_);
+	ASSERT_EQ(f.parameters.size(), 0);
+	ASSERT_EQ(f.name,"f");
+	ASSERT_EQ(f.block.lines.size(), 1);
+	auto l = f.block.lines[0];
+	ASSERT_TRUE(bool(l));
+	ASSERT_EQ(typeid(*l),typeid(LoopModLine));
+	auto lm = dynamic_cast<LoopModLine*>(l.get());
+	ASSERT_EQ(lm->type,continueType);
 	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
 }
 

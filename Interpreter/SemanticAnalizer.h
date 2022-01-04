@@ -2,8 +2,8 @@
 // Created by kamil-hp on 04.01.2022.
 //
 
-#ifndef MTINTERPRETER_SEMANTICANALYZER_H
-#define MTINTERPRETER_SEMANTICANALYZER_H
+#ifndef MTINTERPRETER_SEMANTICANALIZER_H
+#define MTINTERPRETER_SEMANTICANALIZER_H
 #include "Visitor.h"
 #include "../SyntaxTree/InitNode.h"
 #include <map>
@@ -12,19 +12,27 @@
 #include <vector>
 #include "SemanticExpressionTree.h"
 
-class SemanticAnalyzer: public Visitor {
+enum BlockEndMode: uint16_t {
+	ContinueEnd,
+	BreakEnd,
+	NormalEnd
+};
+
+class SemanticAnalizer: public Visitor {
 	std::string actualFunction;
 	TypeType functionReturned;
 	//name, depth, type
 	std::map<std::string, std::map<int, TypeType> > vars;
 	std::optional<SemanticExpressionTree> expressionTree;
 	MappedSyntaxTree* syntaxTree;
+	BlockEndMode blockEndMode=NormalEnd;
 	int depth; //0-global, 1-parameters, 2+-function block
 	void addDepth() {depth++;}
 	void removeDepth();
 	void addVar(const std::string& name, TypeType type);
 	TypeType getVar(const std::string& name) const;
 public:
+	bool analize(MappedSyntaxTree& tree);
 	void visit(AssignNode& node) override;
 	void visit(Block& node) override;
 	void visit(Expression& node) override;
@@ -40,8 +48,8 @@ public:
 	void visit(Parameter& node) override;
 	void visit(Line& node) override;
 	void visit(WhileNode& node) override;
-	bool visitTree(MappedSyntaxTree& tree) override;
+	void visit(LoopModLine& node) override;
 };
 
 
-#endif //MTINTERPRETER_SEMANTICANALYZER_H
+#endif //MTINTERPRETER_SEMANTICANALIZER_H
