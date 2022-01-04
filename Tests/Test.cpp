@@ -1181,6 +1181,7 @@ TEST(ParserTest, MissingBracket1) {
 	Scaner scaner = initScaner("int f({}");
 	Parser parser(scaner);
 	SyntaxTree result = parser.parse();
+	ASSERT_EQ(result.functions.size(), 1);
 	ASSERT_NE(ErrorHandler::getErrorSize(),0);
 }
 

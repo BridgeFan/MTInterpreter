@@ -138,6 +138,9 @@ std::unique_ptr<Line> Parser::getLine() {
 	if(retCall) {
 		return std::make_unique<ReturnNode>(std::move(*retCall));
 	}
+	token = getNextToken();
+	ErrorHandler::addError(ErrorPlace::ParserError, ErrorToken(token->getLine(), token->getColumn(), unexpectedCharacter));
+	prevTokens.push(std::move(token));
 	return nullptr; //no recognized type of line
 }
 
@@ -722,7 +725,7 @@ std::optional<FunctionNode> Parser::getFunction() {
 	func.parameters = std::move(params.second);
 	auto block = getBlock();
 	if (!block)
-		return std::nullopt;
+		block=Block();
 	func.block = *block;
 	return func;
 }
@@ -748,8 +751,10 @@ std::pair<bool, std::vector<Parameter> > Parser::getParameters() {
 		params.emplace_back((TypeType)(dynamic_cast<TypeName *>(token.get())->getSubtype()),
 		                             dynamic_cast<IdToken *>(name.get())->getValue());
 	}
+	errorType = checkToken(token,ParEnd_);
 	if(token->getType()!=ParEnd_) {
 		addError(token, errorType, {ParEnd_});
+		prevTokens.push(std::move(token));
 	}
 	return {true, params};
 }
