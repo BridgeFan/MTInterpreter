@@ -391,6 +391,19 @@ TEST(ScanerTest, String2) {
 	ASSERT_EQ(asPtr->getValue(),"ka&^%#@!^$reugsjg\n\t ");
 }
 
+TEST(ScanerTest, StringWithSemicolon) {
+	Scaner scaner = initScaner("\"k\";");
+	auto tokenPtr = scaner.getNextToken();
+	ASSERT_NE(tokenPtr,nullptr);
+	ASSERT_EQ(tokenPtr->getType(), TokenType::String_);
+	auto asPtr = dynamic_cast<StringToken*>(tokenPtr.get());
+	ASSERT_EQ(asPtr->getValue(),"k");
+	tokenPtr = scaner.getNextToken();
+	ASSERT_NE(tokenPtr,nullptr);
+	ASSERT_EQ(tokenPtr->getType(), TokenType::End_);
+
+}
+
 TEST(ScanerTest, Number1) {
 	Scaner scaner = initScaner("17358");
 	auto tokenPtr = scaner.getNextToken();

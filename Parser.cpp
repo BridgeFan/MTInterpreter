@@ -292,7 +292,7 @@ std::optional<ForNode> Parser::getFor() {
 		return std::nullopt;
 	}
 	if(expr.second->getType()!=ParEnd_) {
-		addError(expr.second,wrongToken,{End_});
+		addError(expr.second,wrongToken,{ParEnd_});
 		prevTokens.push(std::move(expr.second));
 	}
 	node.condition = std::move(expr.first);
@@ -770,6 +770,10 @@ std::optional<LoopModLine> Parser::getLoopMod() {
 	if ((errorType = checkToken(retToken, LoopMod_)) != noError) {
 		prevTokens.push(std::move(retToken));
 		return std::nullopt;
+	}
+	auto token = getNextToken();
+	if(token->getType()!=End_) {
+		checkToken(token,End_);
 	}
 	return LoopModLine((LoopModT)dynamic_cast<LoopMod*>(retToken.get())->getSubtype());
 }

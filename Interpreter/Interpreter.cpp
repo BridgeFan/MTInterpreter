@@ -171,12 +171,43 @@ void Interpreter::visit(FunctionNode &node) {
 }
 
 void Interpreter::visit(FunCall &node) {
-	for(const auto& p: node.params) {
+	for (const auto &p: node.params) {
 		p->accept(*this);
 		paramValues.push_back(expressionTree->value);
-		expressionTree=std::nullopt;
+		expressionTree = std::nullopt;
 	}
+	if (node.name == "scan") {
+		int64_t a;
+		std::cin >> a;
+		NumberExpression number;
+		number.value=a;
+		number.accept(*this);
+	}
+	else if(node.name=="scanf") {
+		double a;
+		std::cin >> a;
+		NumberExpression number;
+		number.value=a;
+		number.accept(*this);
+	}
+	else if(node.name=="print") {
+		switch(paramValues[0].index()) {
+			case TypeType::int_:
+				std::cout << std::get<int_>(paramValues[0]);
+				break;
+			case TypeType::double_:
+				std::cout << std::get<double_>(paramValues[0]);
+				break;
+			case TypeType::void_:
+				break;
+			case TypeType::string_:
+				std::cout << std::get<string_>(paramValues[0]);
+				break;
+		}
 
+	}
+	else
+		syntaxTree->functions[node.name].accept(*this);
 }
 
 void Interpreter::visit(ForNode &node) {

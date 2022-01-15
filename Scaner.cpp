@@ -58,6 +58,7 @@ std::unique_ptr<Token> Scaner::processString() {
 		}
 		getNextChar();
 	}
+	actualChar='\0';
 	return std::make_unique<StringToken>(l, c-1, val);
 }
 

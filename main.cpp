@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
 	}*/
 	//dataSource = std::make_unique<StringDataSource>("int b,c;\ndouble e;\nint f(){}");
 	ErrorHandler::setLimit(100);
-	dataSource = std::make_unique<StringDataSource>("int a; int main(){return 0;}");
+	dataSource = std::make_unique<StringDataSource>("int a; int main(){print(2);return 0;}");
 	Scaner scaner(std::move(dataSource));
 	Parser parser(scaner);
 	bool wereParserErrors = ErrorHandler::getErrorSize()>0;
