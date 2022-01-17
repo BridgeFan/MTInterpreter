@@ -67,7 +67,7 @@ void SemanticAnalizer::visit(Block &node) {
 }
 
 void SemanticAnalizer::visit(Line &node) {
-	node.accept(*this);
+	//node.accept(*this);
 }
 
 void SemanticAnalizer::visit(Parameter &node) {
@@ -100,10 +100,10 @@ void SemanticAnalizer::visit(AssignNode &node) {
 		//should be checked in expression visit
 		return;
 	}
-	if((expressionTree->type==double_ && varType==int_) || expressionTree->type==string_) {
-		ErrorHandler::addWrongAssignError(actualFunction, node.id, varType, expressionTree->type);
+	if((expressionNode->type==double_ && varType==int_) || expressionNode->type==string_) {
+		ErrorHandler::addWrongAssignError(actualFunction, node.id, varType, expressionNode->type);
 	}
-	expressionTree=std::nullopt;
+    removeExpression();
 }
 
 void SemanticAnalizer::removeDepth() {
@@ -128,10 +128,10 @@ void SemanticAnalizer::visit(ReturnNode &node) {
 		return;
 	}
 	node.returnedValue->accept(*this);
-	if((expressionTree->type==int_ && functionReturned!=int_) || expressionTree->type==string_) {
-		ErrorHandler::addWrongReturnError(actualFunction,functionReturned, expressionTree->type);
+	if((expressionNode->type==int_ && functionReturned!=int_) || expressionNode->type==string_) {
+		ErrorHandler::addWrongReturnError(actualFunction,functionReturned, expressionNode->type);
 	}
-	expressionTree=std::nullopt;
+    removeExpression();
 }
 
 bool isConvertible(TypeType from, TypeType to) {
@@ -158,56 +158,60 @@ void SemanticAnalizer::visit(FunCall &node) {
 	}
 	for(int i=0;i<node.params.size();i++) {
 		node.params[i]->accept(*this);
-		if(!isConvertible(expressionTree->type,funParams[i].type)) {
-			ErrorHandler::addWrongParameterError(actualFunction,node.name,i,funParams[i].type,expressionTree->type);
+		if(!isConvertible(expressionNode->type,funParams[i].type)) {
+			ErrorHandler::addWrongParameterError(actualFunction,node.name,i,funParams[i].type,expressionNode->type);
 		}
-		expressionTree=std::nullopt;
+        removeExpression();
 	}
 }
 
 
 void SemanticAnalizer::visit(StringExpression &node) {
-	if(!expressionTree)
-		expressionTree={string_,nullptr};
+	if(!expressionTree) {
+        expressionTree = {string_, nullptr};
+        expressionNode=&*expressionTree;
+    }
 	else
-		expressionTree->type=string_;
+		expressionNode->type=string_;
 }
 
 void SemanticAnalizer::visit(Expression &node) {
 	if(!expressionTree) { //none is initialized
-		expressionTree={void_,nullptr};
+        expressionTree={void_,nullptr};
+        expressionNode=&*expressionTree;
 	}
 	expressionTree->setLeft(void_);
 	if(node.expression1) {
-		expressionTree=*expressionTree->getLeft();
+        expressionNode=expressionNode->getLeft();
 		node.expression1->accept(*this);
-		expressionTree=*expressionTree->getParent();
+        expressionNode=expressionNode->getParent();
 	}
 	TypeType type2=void_;
 	if(node.expression2) {
-		expressionTree=*expressionTree->getRight();
+        expressionNode->setRight(void_);
+        expressionNode=expressionNode->getRight();
 		node.expression2->accept(*this);
-		expressionTree=*expressionTree->getParent();
-		type2 = expressionTree->getRight()->type;
+        expressionNode=expressionNode->getParent();
+		type2 = expressionNode->right->type;
 	}
-	auto type1 = expressionTree->getLeft()->type;
+	auto type1 = expressionNode->left->type;
 	if(type1==string_ || type2==string_) {
-		expressionTree->type=string_;
+        expressionNode->type=string_;
 		if(node.op!=add) {
 			if(type2==void_)
 				ErrorHandler::addIllegalOperationError(actualFunction,node.op,type1);
 			else
 				ErrorHandler::addIllegalOperationError(actualFunction,node.op,type1,type2);
 		}
-		expressionTree->unsetLeft();
-		expressionTree->unsetRight();
+        expressionNode->unsetLeft();
+        expressionNode->unsetRight();
 		return;
 	}
 	//number operations
 	switch(node.op) {
 		case minus:
 			if(type2==void_) {
-				expressionTree->type=type1;
+                expressionNode->type=type1;
 				break;
 			}
 		case add:
@@ -215,9 +219,9 @@ void SemanticAnalizer::visit(Expression &node) {
 		case divi:
 		case mod:
 			if(type1==double_ || type2==double_)
-				expressionTree->type=double_;
+                expressionNode->type=double_;
 			else if(type1==int_ || type2==int_)
-				expressionTree->type=int_;
+                expressionNode->type=int_;
 			break;
 		case eq:
 		case neq:
@@ -225,28 +229,28 @@ void SemanticAnalizer::visit(Expression &node) {
 		case meq:
 		case les:
 		case leq:
-			expressionTree->type=int_;
+            expressionNode->type=int_;
 			break;
 		case negation:
 			if(type1!=int_)
 				ErrorHandler::addIllegalOperationError(actualFunction,node.op,type1);
-			expressionTree->type=int_;
+            expressionNode->type=int_;
 			break;
 		case Or:
 		case And:
 			if(type1==double_ || type2==double_)
 				ErrorHandler::addIllegalOperationError(actualFunction,node.op,type1, type2);
-			expressionTree->type=int_;
+            expressionNode->type=int_;
 			break;
 		case toIntConversion:
-			expressionTree->type=int_;
+            expressionNode->type=int_;
 		case toDoubleConversion:
-			expressionTree->type=double_;
+            expressionNode->type=double_;
 		case none:
 			break;
 	}
-	expressionTree->unsetLeft();
-	expressionTree->unsetRight();
+    expressionNode->unsetLeft();
+    expressionNode->unsetRight();
 }
 
 void SemanticAnalizer::visit(NumberExpression &node) {
@@ -255,26 +259,35 @@ void SemanticAnalizer::visit(NumberExpression &node) {
 		type=int_;
 	else
 		type=double_;
-	if(!expressionTree)
-		expressionTree={type,nullptr};
+	if(!expressionTree) {
+        expressionTree = {type, nullptr};
+        expressionNode = &*expressionTree;
+    }
 	else
-		expressionTree->type=type;
+		expressionNode->type=type;
 }
 
 void SemanticAnalizer::visit(IdExpression &node) {
 	TypeType type=getVar(node.value);
-	if(!expressionTree)
-		expressionTree={type,nullptr};
+	if(!expressionTree) {
+        expressionTree = {type, nullptr};
+        expressionNode = &*expressionTree;
+    }
 	else
-		expressionTree->type=type;
+        expressionNode->type=type;
+}
+
+void SemanticAnalizer::removeExpression() {
+    expressionTree=std::nullopt;
+    expressionNode=nullptr;
 }
 
 void SemanticAnalizer::visit(IfNode &node) {
 	node.condition->accept(*this);
-	if(expressionTree->type!=int_) {
-		ErrorHandler::addWrongConditionError(actualFunction,"if",expressionTree->type);
+	if(expressionNode->type!=int_) {
+		ErrorHandler::addWrongConditionError(actualFunction,"if",expressionNode->type);
 	}
-	expressionTree=std::nullopt;
+    removeExpression();
 	node.stat.accept(*this);
 	if(node.elseStat)
 		node.elseStat->accept(*this);
@@ -285,7 +298,7 @@ void SemanticAnalizer::visit(WhileNode &node) {
 	if(expressionTree->type!=int_) {
 		ErrorHandler::addWrongConditionError(actualFunction,"while",expressionTree->type);
 	}
-	expressionTree=std::nullopt;
+    removeExpression();
 	node.stat.accept(*this);
 	blockEndMode=NormalEnd;
 }
@@ -295,7 +308,7 @@ void SemanticAnalizer::visit(ForNode &node) {
 	if(expressionTree->type!=int_) {
 		ErrorHandler::addWrongConditionError(actualFunction,"for",expressionTree->type);
 	}
-	expressionTree=std::nullopt;
+    removeExpression();
 	node.init.accept(*this);
 	if(node.assignNodePre)
 		node.assignNodePre->accept(*this);
@@ -311,10 +324,10 @@ void SemanticAnalizer::visit(InitNode &node) {
 		if(!v.second)
 			continue;
 		v.second->accept(*this);
-		if(expressionTree->type!=node.type) {
-			ErrorHandler::addWrongAssignError(actualFunction, v.first, node.type, expressionTree->type);
+		if(expressionNode->type!=node.type) {
+			ErrorHandler::addWrongAssignError(actualFunction, v.first, node.type, expressionNode->type);
 		}
-		expressionTree=std::nullopt;
+        removeExpression();
 	}
 }
 

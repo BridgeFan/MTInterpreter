@@ -17,6 +17,7 @@
 #include "../Token/LoopMod.h"
 #include "../ErrorHandler.h"
 #include "../Parser.h"
+#include "../Interpreter/SemanticAnalizer.h"
 
 //Data source tests
 TEST(DataSourceTest, File) {
@@ -1219,8 +1220,109 @@ TEST(ParserTest, MissingBracket1) {
 	ASSERT_NE(ErrorHandler::getErrorSize(),0);
 }
 
+TEST(MappedSyntaxTreeTest, Good) {
+    ErrorHandler::clear();
+    auto&& [wasGood, result] = initMappedSyntaxTree("int main(){} int a; int g(){} double b;");
+    EXPECT_TRUE(wasGood);
+    EXPECT_EQ(result.globalVars.size(), 2);
+    EXPECT_EQ(result.functions.size(), 5); //because there are three pre-defined functions: scan, scanf and print
+    ASSERT_NE(result.globalVars.find("a"),result.globalVars.end());
+    ASSERT_NE(result.globalVars.find("b"),result.globalVars.end());
+    ASSERT_NE(result.functions.find("main"),result.functions.end());
+    ASSERT_NE(result.functions.find("g"),result.functions.end());
+    //pre-defined
+    EXPECT_NE(result.functions.find("scan"),result.functions.end());
+    EXPECT_NE(result.functions.find("scanf"),result.functions.end());
+    EXPECT_NE(result.functions.find("print"),result.functions.end());
+    //
+    ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+}
+
+TEST(MappedSyntaxTreeTest, NoMain) {
+    ErrorHandler::clear();
+    auto&& [wasGood, result] = initMappedSyntaxTree("int f(){} int a; int g(){} double b;");
+    EXPECT_FALSE(wasGood);
+    EXPECT_EQ(result.globalVars.size(), 2);
+    ASSERT_NE(result.globalVars.find("a"),result.globalVars.end());
+    ASSERT_NE(result.globalVars.find("b"),result.globalVars.end());
+    ASSERT_NE(result.functions.find("f"),result.functions.end());
+    ASSERT_NE(result.functions.find("g"),result.functions.end());
+    ASSERT_EQ(result.functions.find("main"),result.functions.end());
+    ASSERT_NE(ErrorHandler::getErrorSize(),0);
+}
+
+TEST(MappedSyntaxTreeTest, WrongMain) {
+    ErrorHandler::clear();
+    auto&& [wasGood, result] = initMappedSyntaxTree("double main(){} int a; int g(){} double b;");
+    EXPECT_FALSE(wasGood);
+    ASSERT_NE(ErrorHandler::getErrorSize(),0);
+}
+
+TEST(MappedSyntaxTreeTest, SameFunctionNames) {
+    ErrorHandler::clear();
+    auto&& [wasGood, result] = initMappedSyntaxTree("int b(){} int a; int b(){} double b;");
+    EXPECT_FALSE(wasGood);
+    EXPECT_EQ(result.globalVars.size(), 2);
+    ASSERT_NE(result.globalVars.find("a"),result.globalVars.end());
+    ASSERT_NE(result.globalVars.find("b"),result.globalVars.end());
+    ASSERT_NE(result.functions.find("b"),result.functions.end());
+    ASSERT_NE(ErrorHandler::getErrorSize(),0);
+}
+
+TEST(MappedSyntaxTreeTest, SameVariableName) {
+    ErrorHandler::clear();
+    auto&& [wasGood, result] = initMappedSyntaxTree("int f(){} int a; int main(){} double a;");
+    EXPECT_FALSE(wasGood);
+    EXPECT_EQ(result.functions.size(), 5);
+    ASSERT_NE(result.globalVars.find("a"),result.globalVars.end());
+    ASSERT_NE(result.functions.find("f"),result.functions.end());
+    ASSERT_NE(result.functions.find("main"),result.functions.end());
+    ASSERT_NE(ErrorHandler::getErrorSize(),0);
+}
+
+
+TEST(MappedSyntaxTreeTest, IllegalFunctionName) {
+    ErrorHandler::clear();
+    auto&& [wasGood, result] = initMappedSyntaxTree("int print(){} int a; int b(){} double b;");
+    EXPECT_FALSE(wasGood);
+    EXPECT_EQ(result.globalVars.size(), 2);
+    ASSERT_NE(result.globalVars.find("a"),result.globalVars.end());
+    ASSERT_NE(result.globalVars.find("b"),result.globalVars.end());
+    ASSERT_NE(result.functions.find("b"),result.functions.end());
+    ASSERT_NE(ErrorHandler::getErrorSize(),0);
+}
+
+TEST(SemanticTest, Good) {
+    auto&& [wasGood, result] = initMappedSyntaxTree("int f(){} int a; int main(){int i=4;if(i<4) return 1; else return 0;}");
+    EXPECT_TRUE(wasGood);
+    SemanticAnalizer analizer;
+    bool analizeResult = analizer.visitTree(result);
+    EXPECT_TRUE(analizeResult);
+    ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+}
+
+TEST(UndeclaredVariableTest, Good) {
+    auto&& [wasGood, result] = initMappedSyntaxTree("int f(){} int a; int main(){print(b);}");
+    EXPECT_TRUE(wasGood);
+    SemanticAnalizer analizer;
+    bool analizeResult = analizer.visitTree(result);
+    EXPECT_FALSE(analizeResult);
+    ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+}
+
+/*TEST(SemanticTest, Good) {
+    auto&& [wasGood, result] = initMappedSyntaxTree("int f(){} int a; int main(){int i=4;if(i<4) return 1; else return 0;}");
+    EXPECT_TRUE(wasGood);
+    SemanticAnalizer analizer;
+    bool analizeResult = analizer.visitTree(result);
+    EXPECT_TRUE(analizeResult);
+    ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+}*/
+
+
 
 int main(int argc, char** argv) {
+
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }

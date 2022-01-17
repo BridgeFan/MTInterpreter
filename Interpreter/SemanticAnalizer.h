@@ -25,6 +25,7 @@ class SemanticAnalizer: public Visitor {
 	//name, depth, type
 	std::map<std::string, std::map<int, TypeType> > vars;
 	std::optional<SemanticExpressionTree> expressionTree;
+    SemanticExpressionTree* expressionNode;
 	MappedSyntaxTree* syntaxTree;
 	BlockEndMode blockEndMode=NormalEnd;
 	int depth; //0-global, 1-parameters, 2+-function block
@@ -50,6 +51,7 @@ public:
 	void visit(Line& node) override;
 	void visit(WhileNode& node) override;
 	void visit(LoopModLine& node) override;
+    void removeExpression();
 };
 
 

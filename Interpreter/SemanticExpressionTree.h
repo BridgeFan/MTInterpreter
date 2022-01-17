@@ -11,18 +11,18 @@ enum TypeType: uint16_t;
 
 class SemanticExpressionTree {
 private:
-	std::shared_ptr<SemanticExpressionTree> left, right, parent;
 public:
+    std::shared_ptr<SemanticExpressionTree> left, right, parent;
 	TypeType type=(TypeType)2u; //void_
 	SemanticExpressionTree()=default;
 	SemanticExpressionTree(TypeType type, SemanticExpressionTree* parent): type(type), parent(parent) {}
-	void setLeft(TypeType lType) {left=std::make_unique<SemanticExpressionTree>(lType,this);}
-	void unsetLeft() {left.reset();}
+	void setLeft(TypeType lType) {left.reset(new SemanticExpressionTree(lType,this));}
+	void unsetLeft() {left=nullptr;}
 	[[nodiscard]] SemanticExpressionTree* getLeft() const {return left.get();}
-	void setRight(TypeType rType) {left=std::make_unique<SemanticExpressionTree>(rType,this);}
-	void unsetRight() {right.reset();}
-	[[nodiscard]] SemanticExpressionTree* getRight() const {return right.get();}
-	[[nodiscard]] SemanticExpressionTree* getParent() const {return parent.get();}
+	void setRight(TypeType rType) {right.reset(new SemanticExpressionTree(rType,this));}
+	void unsetRight() {right=nullptr;}
+    [[nodiscard]] SemanticExpressionTree* getRight() const {return right.get();}
+    [[nodiscard]] SemanticExpressionTree* getParent() const {return parent.get();}
 };
 
 
