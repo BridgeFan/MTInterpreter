@@ -6,11 +6,11 @@
 #include <stdexcept>
 #include <variant>
 
-typedef std::function<int64_t(int64_t,int64_t)> IntBinOp;
-typedef std::function<double(double,double)> DoubleBinOp;
-typedef std::function<std::string(const std::string&,const std::string&)> StringBinOp;
-typedef std::function<int64_t(int64_t)> IntUnOp;
-typedef std::function<double(double)> DoubleUnOp;
+typedef std::function<InterpreterValue(int64_t,int64_t)> IntBinOp;
+typedef std::function<InterpreterValue(double,double)> DoubleBinOp;
+typedef std::function<InterpreterValue(const std::string&,const std::string&)> StringBinOp;
+typedef std::function<InterpreterValue(int64_t)> IntUnOp;
+typedef std::function<InterpreterValue(double)> DoubleUnOp;
 
 class BinaryOperation {
 	std::optional<IntBinOp> intFunction;

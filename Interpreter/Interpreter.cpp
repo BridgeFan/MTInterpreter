@@ -102,6 +102,8 @@ int64_t Interpreter::visitTree(MappedSyntaxTree &tree) {
 	tree.functions["main"].accept(*this);
 	clearScope();
 	globalScope={};
+	if(returnedValue.index()!=int_)
+		throw std::runtime_error("Wrong main function return type");
 	return std::get<int_>(returnedValue);
 }
 
@@ -238,10 +240,10 @@ void Interpreter::visit(FunCall &node) {
 		std::visit(overloaded {
 			[&](int64_t a) {out << a;},
 			[&](double a) {out << a;},
-			[](std::nullptr_t a) {throw std::runtime_error("Unexpected void in print");},
+			[&](std::nullptr_t a) {throw std::runtime_error("Unexpected void in print");},
 			[&](const std::string& a) {out << a;},
 		}, paramValues[0]);
-		returnedValue=nullptr;
+		returnedValue="";
 	}
 	else
 		syntaxTree->functions[node.name].accept(*this);

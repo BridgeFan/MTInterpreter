@@ -24,7 +24,7 @@ struct Scope {
 };
 
 class Interpreter: public Visitor {
-	InterpreterValue returnedValue;
+	InterpreterValue returnedValue="";
 	Scope* actualScope=nullptr;
 	Scope globalScope;
 	std::vector<InterpreterValue> paramValues;

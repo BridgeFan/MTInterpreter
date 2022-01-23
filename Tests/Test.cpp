@@ -1293,17 +1293,6 @@ TEST(MappedSyntaxTreeTest, IllegalFunctionName) {
     ASSERT_NE(ErrorHandler::getErrorSize(),0);
 }
 
-TEST(InterpreterTest, OKTestSimple) {
-	ErrorHandler::clear();
-	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){}");
-	ASSERT_TRUE(wasGood);
-	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
-	std::ostringstream out;
-	Interpreter interpreter(std::cin, out);
-	int retValue= interpreter.visitTree(result);
-	ASSERT_EQ(retValue, 0);
-}
-
 TEST(InterpreterTest, ReturnTest) {
 	ErrorHandler::clear();
 	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){return 5;}");
@@ -1311,11 +1300,113 @@ TEST(InterpreterTest, ReturnTest) {
 	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
 	std::ostringstream out;
 	Interpreter interpreter(std::cin, out);
-	int retValue= interpreter.visitTree(result);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
 	ASSERT_EQ(retValue, 5);
 	ASSERT_EQ(out.str(),"");
 }
 
+TEST(InterpreterTest, NumberPrintTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){print(0);return 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"0");
+}
+
+TEST(InterpreterTest, IntAssignTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){int a; a=5; return a;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 5);
+	ASSERT_EQ(out.str(),"");
+}
+
+TEST(InterpreterTest, IntAddAssignTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){int a=1; a+=5; return a;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 6);
+	ASSERT_EQ(out.str(),"");
+}
+
+TEST(InterpreterTest, DoubleAssignTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){double a; a=5; return (int)a;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 5);
+	ASSERT_EQ(out.str(),"");
+}
+
+TEST(InterpreterTest, DoubleMultAssignTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){double a=1.0; a*=5; return (int)a;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 5);
+	ASSERT_EQ(out.str(),"");
+}
+
+
+TEST(InterpreterTest, IntInputPrintTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){int b=scan();print(b);return 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	std::istringstream in("6");
+	Interpreter interpreter(in, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"6");
+}
+
+TEST(InterpreterTest, DoubleInputPrintTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){double b=scanf(); print(b);return 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	std::istringstream in("6.2");
+	Interpreter interpreter(in, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"6.2");
+}
 
 int main(int argc, char** argv) {
 

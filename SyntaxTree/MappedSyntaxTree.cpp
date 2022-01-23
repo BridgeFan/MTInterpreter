@@ -2,7 +2,7 @@
 // Created by kamil-hp on 23.01.2022.
 //
 #include "MappedSyntaxTree.h"
-const std::array<std::string, 3> MappedSyntaxTree::illegalNames = {"scan, scanf, print"};
+const std::array<std::string, 3> MappedSyntaxTree::illegalNames = {"scan", "scanf", "print"};
 
 bool MappedSyntaxTree::mapTree(const SyntaxTree& tree) {
 	bool isCorrect=true;
