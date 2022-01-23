@@ -149,6 +149,7 @@ std::string toString(TypeType type) {
 		case string_:
 			return "string";
 	}
+	return "";
 }
 
 void ErrorHandler::addWrongAssignError(const std::string& func, const std::string& name, TypeType varType, TypeType gotType) {
