@@ -91,14 +91,11 @@ void Interpreter::clearScope() {
 int64_t Interpreter::visitTree(MappedSyntaxTree &tree) {
 	globalScope={};
 	syntaxTree=&tree;
+	actualScope=&globalScope;
 	for(auto&& [name, var]: tree.globalVars) {
-		actualScope= new Scope;
-		if(var.type==int_)
-			addVar(name,(int64_t)0);
-		else
-			addVar(name,0.0);
 		var.accept(*this);
 	}
+	actualScope = nullptr;
 	tree.functions["main"].accept(*this);
 	clearScope();
 	globalScope={};
@@ -109,10 +106,10 @@ int64_t Interpreter::visitTree(MappedSyntaxTree &tree) {
 
 void Interpreter::visit(AssignNode &node) {
 	auto value = node.expression->calculate(*this);
-	if(getVar(node.id).index()==int_ && value.index()==double_) {
+	auto var = getVar(node.id);
+	if(var.index()==int_ && value.index()==double_) {
 		throw std::runtime_error("Trying to assign double to int");
 	}
-	auto var = getVar(node.id);
 	switch(node.type) {
 		case assign2:
 			setVar(node.id, value);
@@ -192,6 +189,7 @@ void Interpreter::visit(WhileNode &node) {
 		node.stat.accept(*this);
 		if(blockEndMode==BreakEnd || blockEndMode==ReturnEnd)
 			break;
+		blockEndMode=NormalEnd;
 		condition = std::get<int_>(node.condition->calculate(*this));
 	}
 	if(blockEndMode!=ReturnEnd)
@@ -201,21 +199,31 @@ void Interpreter::visit(WhileNode &node) {
 void Interpreter::visit(FunctionNode &node) {
 	Scope* scope=actualScope;
 	actualScope=new Scope();
+	if(node.parameters.size()!=paramValues.size()) {
+		throw std::runtime_error("When calling function "+node.name+" expected "+std::to_string(node.parameters.size())+
+		" paramters but got "+std::to_string(paramValues.size()));
+	}
 	for(int i=0;i<node.parameters.size();i++) {
 		if(node.parameters[i].type==double_ && paramValues[i].index()==int_)
 			paramValues[i]=(double)std::get<int_>(paramValues[i]);
 		if(paramValues[i].index()==int_)
-			addVar(node.name,std::get<int_>(paramValues[i]));
+			addVar(node.parameters[i].name,std::get<int_>(paramValues[i]));
 		if(paramValues[i].index()==double_)
-			addVar(node.name,std::get<double_>(paramValues[i]));
+			addVar(node.parameters[i].name,std::get<double_>(paramValues[i]));
 	}
 	paramValues.clear();
 	node.block.accept(*this);
+	if(blockEndMode == ContinueEnd)
+		throw std::runtime_error("Uncatched continue in function "+node.name);
+	if(blockEndMode == BreakEnd)
+		throw std::runtime_error("Uncatched break in function "+node.name);
+	blockEndMode=NormalEnd;
 	clearScope();
 	actualScope=scope;
 }
 
 void Interpreter::visit(FunCall &node) {
+	returnedValue="";
 	paramValues.clear();
 	for (const auto &p: node.params) {
 		paramValues.push_back(p->calculate(*this));
@@ -258,6 +266,7 @@ void Interpreter::visit(ForNode &node) {
 		node.stat.accept(*this);
 		if(blockEndMode==BreakEnd || blockEndMode==ReturnEnd)
 			break;
+		blockEndMode=NormalEnd;
 		if(node.assignNodeEach)
 			node.assignNodeEach->accept(*this);
 		condition = std::get<int_>(node.condition->calculate(*this));
@@ -298,7 +307,10 @@ InterpreterValue Interpreter::calculate(Expression &node) {
 
 InterpreterValue Interpreter::calculate(FunCallExpression &node) {
 	node.funCall->accept(*this);
-	return returnedValue;
+	paramValues.clear();
+	auto ret = std::move(returnedValue);
+	returnedValue="";
+	return ret;
 }
 
 

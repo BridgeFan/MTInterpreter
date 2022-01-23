@@ -291,7 +291,7 @@ std::optional<ForNode> Parser::getFor() {
 	if (!expr.first) {
 		return std::nullopt;
 	}
-	if(expr.second->getType()!=ParEnd_) {
+	if(expr.second->getType()!=End_) {
 		addError(expr.second,wrongToken,{ParEnd_});
 		prevTokens.push(std::move(expr.second));
 	}
@@ -302,7 +302,7 @@ std::optional<ForNode> Parser::getFor() {
 		return std::nullopt;
 	if(token3->getType()!=ParEnd_) {
 		prevTokens.push(std::move(token3));
-		auto assignNode = getAssign();
+		auto assignNode = getAssign(ParEnd_);
 		if(!assignNode)
 			return std::nullopt;
 		node.assignNodeEach=std::move(assignNode);
@@ -393,6 +393,10 @@ std::vector<TokenType> exprTokenTypes = {
 };
 
 int getPriority(const std::pair<std::unique_ptr<Token>, bool>& val) {
+	if(!val.first)
+		return 9999;
+	if(val.first->getType()==ParBegin_)
+		return 9999;
 	if(val.second)
 		return 0;
 	std::map<TokenType, int> opTokenPriorities = {
@@ -404,8 +408,6 @@ int getPriority(const std::pair<std::unique_ptr<Token>, bool>& val) {
 			{Logic_, 5},
 			{RelOp_, 6}
 	};
-	if(!val.first)
-		return 9999;
 	auto it = opTokenPriorities.find(val.first->getType());
 	if(it==opTokenPriorities.end())
 		return 9000;
@@ -502,7 +504,9 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 				stack.pop();
 			}
 			if(stack.empty()) {
-				ErrorHandler::addError(ParserError,{token->getLine(),token->getColumn(),unexpectedParEnd});
+				//it means that function finishes with ParEnd
+				break;
+				//ErrorHandler::addError(ParserError,{token->getLine(),token->getColumn(),unexpectedParEnd});
 			}
 			else
 				stack.pop();
@@ -670,7 +674,7 @@ SyntaxTree Parser::parse() {
 	return tree;
 }
 
-std::optional<AssignNode> Parser::getAssign() {
+std::optional<AssignNode> Parser::getAssign(TokenType endType) {
 	//id assignNode statement
 	AssignNode assignNode;
 	std::unique_ptr<Token> assignToken1, assignToken2;
@@ -693,8 +697,8 @@ std::optional<AssignNode> Parser::getAssign() {
 	if (!expr.first) {
 		return std::nullopt;
 	}
-	if(expr.second->getType()!=End_) {
-		addError(expr.second,wrongToken,{End_});
+	if(expr.second->getType()!=endType) {
+		addError(expr.second,wrongToken,{endType});
 		prevTokens.push(std::move(expr.second));
 	}
 	assignNode.expression = std::move(expr.first);

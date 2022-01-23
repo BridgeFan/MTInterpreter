@@ -1408,6 +1408,308 @@ TEST(InterpreterTest, DoubleInputPrintTest) {
 	ASSERT_EQ(out.str(),"6.2");
 }
 
+TEST(InterpreterTest, DivideOperationTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){double a=5.0; a=a/5; print(a);return 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"1");
+}
+
+TEST(InterpreterTest, ModuloOperationTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){int a=7; a=a%3; print(a);return 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"1");
+}
+
+TEST(InterpreterTest, DivideByZeroErrorOperationTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){double a=5.0; a=a/0;return 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	ASSERT_THROW({interpreter.visitTree(result);}, std::runtime_error);
+}
+
+TEST(InterpreterTest, ConversionTest1) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){int a=7; a=(int)5.0; print(a);return 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"5");
+}
+
+TEST(InterpreterTest, ConversionTest2) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){double a; a=(double)5; print(a);return 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"5");
+}
+
+TEST(InterpreterTest, IfTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){\nif(0==2)\nprint(5);\nprint(7);\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"7");
+}
+
+TEST(InterpreterTest, ElseTest1) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){if((0==0) && (7==7)) print(7); else print(4); return 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"7");
+}
+
+TEST(InterpreterTest, ElseTest2) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){if((0==1) && (7==7)) print(7); else print(4); return 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"4");
+}
+
+TEST(InterpreterTest, WhileTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){int i=0; while(i<4) {i+=1; print(i);} return 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"1234");
+}
+
+TEST(InterpreterTest, ForTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main()\n{int i;\nfor(i=0; i<4; i+=1)\n{print(i);}\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"0123");
+}
+
+TEST(InterpreterTest, BreakTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main()\n{int i;\nfor(i=0; i<4; i+=1)\n{\n{if(i==2) break; print(i);}\n}\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"01");
+}
+
+TEST(InterpreterTest, ContinueTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main()\n{int i;\nfor(i=0; i<4; i+=1)\n{\n{if(i==2) continue; print(i);}\n}\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"013");
+}
+
+TEST(InterpreterTest, InternalReturnTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main()\n{int i;\nfor(i=0; i<4; i+=1)\n{\n{if(i==2) return 5; print(i);}\n}\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 5);
+	ASSERT_EQ(out.str(),"01");
+}
+
+TEST(InterpreterTest, GlobalVarTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int a;int main()\n{a=6;\nprint(a);\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"6");
+}
+
+TEST(InterpreterTest, UnknownVarTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main()\n{b=6;\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	ASSERT_THROW({(int) interpreter.visitTree(result);},std::runtime_error);
+}
+
+TEST(InterpreterTest, ManyFunctionsTest1) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int a() {return 5;} int main()\n{print(a());\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"5");
+}
+
+TEST(InterpreterTest, ManyFunctionsTest2) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int a(int b) {return 2*b;} int main()\n{print(a(5));\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"10");
+}
+
+TEST(InterpreterTest, UnknownFunctionTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main()\n{print(a(5));\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	ASSERT_THROW({(int) interpreter.visitTree(result);},std::runtime_error);
+}
+
+TEST(InterpreterTest, ManyFunctionsTestWrongParameterNumber) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int a(int b) {return 2*b;} int main()\n{print(a());\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	ASSERT_THROW({(int) interpreter.visitTree(result);},std::runtime_error);
+}
+
+TEST(InterpreterTest, PrintStringTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main()\n{print(\"\\n\");\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"\n");
+}
+
+TEST(InterpreterTest, AddStringTest1) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main()\n{print(\"a\"+\"\\n\");\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"a\n");
+}
+
+TEST(InterpreterTest, AddStringTest2) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main()\n{print(5+\"\\n\");\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue;
+	try {retValue = (int) interpreter.visitTree(result);}
+	catch(...) {FAIL();}
+	ASSERT_EQ(retValue, 0);
+	ASSERT_EQ(out.str(),"5\n");
+}
+
+TEST(InterpreterTest, IllegalStringOperation) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main()\n{print(\"a\"-\"\\n\");\nreturn 0;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	ASSERT_THROW({(int) interpreter.visitTree(result);},std::runtime_error);
+}
+
 int main(int argc, char** argv) {
 
 	testing::InitGoogleTest(&argc, argv);

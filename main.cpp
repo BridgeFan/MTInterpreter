@@ -13,7 +13,7 @@
 int main(int argc, char** argv) {
 	//Conversion token will be created in parser, not in scaner to reduce wrong interpretation
 	std::unique_ptr<DataSource> dataSource;
-	/*if(argc<2) {
+	if(argc<2) {
 		std::cout << "Usage:\n";
 		std::cout << "file: provide file path in second parameter\n";
 		std::cout << "str: provide string in second parameter\n";
@@ -38,10 +38,8 @@ int main(int argc, char** argv) {
 				dataSource = std::make_unique<StringDataSource>(argv[2]);
 			}
 		}
-	}*/
-	//dataSource = std::make_unique<StringDataSource>("int b,c;\ndouble e;\nint f(){}");
+	}
 	ErrorHandler::setLimit(100);
-	dataSource = std::make_unique<StringDataSource>("int a; int main(){int b; print(b);return 0;}");
 	Scaner scaner(std::move(dataSource));
 	Parser parser(scaner);
 	bool wereParserErrors = ErrorHandler::getErrorSize()>0;

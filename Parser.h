@@ -30,7 +30,7 @@ class Parser {
 	Scaner& scaner;
 	std::vector<FunctionNode> functions;
 	std::vector<InitNode> globalVars;
-	std::optional<AssignNode> getAssign();
+	std::optional<AssignNode> getAssign(TokenType endType=End_);
 	std::optional<Block> getBlock();
 	std::unique_ptr<Line> getLine();
 	std::optional<IfNode> getIf();
