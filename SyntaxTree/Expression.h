@@ -9,8 +9,12 @@
 #include <optional>
 #include <functional>
 #include <variant>
+#include <memory>
 #include "../Token/Token.h"
 #include "SyntaxTreeElement.h"
+#include "EvaluableSyntaxTreeElement.h"
+#include "../Interpreter/Visitor.h"
+#include "FunCall.h"
 
 enum OperatorType: uint16_t {
 	none,
@@ -32,44 +36,32 @@ enum OperatorType: uint16_t {
 	toDoubleConversion,
 };
 
-struct FunCall;
-struct Expression: SyntaxTreeElement {
+struct Expression: public EvaluableSyntaxTreeElement {
 	std::unique_ptr<Expression> expression1;
 	std::unique_ptr<Expression> expression2; //can be null
 	OperatorType  op; //can be null for simple expressions (derived types)
 	virtual ~Expression()=default;
-	virtual void accept(Visitor& visitor) override {
-		visitor.visit(*this);
-	}
+	virtual InterpreterValue calculate(Visitor& visitor) override;
 };
 
 struct IdExpression: public Expression {
 	std::string value;
-	virtual void accept(Visitor& visitor) override {
-		visitor.visit(*this);
-	}
+	virtual InterpreterValue calculate(Visitor& visitor) override;
 };
 
 struct StringExpression: public Expression {
 	std::string value;
-	virtual void accept(Visitor& visitor) override {
-		visitor.visit(*this);
-	}
+	virtual InterpreterValue calculate(Visitor& visitor) override;
 };
 
 struct NumberExpression: public Expression {
 	std::variant<int64_t, double> value;
-	virtual void accept(Visitor& visitor) override {
-		visitor.visit(*this);
-	}
+	virtual InterpreterValue calculate(Visitor& visitor) override;
 };
 
 struct FunCallExpression: public Expression {
-	std::unique_ptr<FunCall> token;
-	virtual void accept(Visitor& visitor) override {
-		if(token)
-			visitor.visit(*token);
-	}
+	std::unique_ptr<FunCall> funCall;
+	virtual InterpreterValue calculate(Visitor& visitor) override;
 };
 
 

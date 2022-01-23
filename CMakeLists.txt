@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(MTInterpreter)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 add_subdirectory(Tests)
 add_executable(MTInterpreter main.cpp
         Token/IdToken.cpp
@@ -23,4 +23,4 @@ add_executable(MTInterpreter main.cpp
         Token/ErrorToken.cpp
         Token/Util.cpp
         Parser.cpp
-        Interpreter/SemanticAnalizer.cpp Interpreter/Interpreter.cpp Interpreter/Interpreter.h Interpreter/InterpreterExpressionTree.cpp)
+        Interpreter/Interpreter.cpp Interpreter/Interpreter.h Interpreter/InterpreterExpressionTree.cpp SyntaxTree/Expression.cpp SyntaxTree/FunCall.cpp SyntaxTree/Line.cpp SyntaxTree/Parameter.cpp SyntaxTree/Block.cpp SyntaxTree/FunctionNode.cpp SyntaxTree/MappedSyntaxTree.cpp)

@@ -457,7 +457,7 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 			if(fun) {
 				//function call
 				std::unique_ptr<FunCallExpression> fnExpr(new FunCallExpression());
-				fnExpr->token=std::unique_ptr<FunCall>(dynamic_cast<FunCall*>(token.release()));
+				fnExpr->funCall=std::unique_ptr<FunCall>(dynamic_cast<FunCall*>(token.release()));
 				exit.emplace(std::move(fnExpr));
 			}
 			else {

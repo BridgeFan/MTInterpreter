@@ -7,30 +7,42 @@
 
 #include "Visitor.h"
 #include "InterpreterExpressionTree.h"
-#include "SemanticAnalizer.h"
+#include <map>
+
+enum BlockEndMode: uint16_t {
+	ContinueEnd=0u,
+	BreakEnd=1u,
+	NormalEnd=2u,
+	ReturnEnd=3u
+};
+
+struct Scope {
+	std::map<std::string, InterpreterValue> vars;
+	Scope* parent;
+	Scope()=default;
+	Scope(Scope& parent): parent(&parent) {}
+};
 
 class Interpreter: public Visitor {
-	std::string actualFunction;
-	TypeType functionReturned;
-	//name, depth, type
-	std::map<std::string, std::map<int, InterpreterValue> > vars;
+	InterpreterValue returnedValue;
+	Scope* actualScope=nullptr;
+	Scope globalScope;
 	std::vector<InterpreterValue> paramValues;
-	std::optional<InterpreterExpressionTree> expressionTree;
-	MappedSyntaxTree* syntaxTree;
+	MappedSyntaxTree *syntaxTree=nullptr;
 	BlockEndMode blockEndMode=NormalEnd;
-	int depth; //0-global, 1-parameters, 2+-function block
-	void addDepth() {depth++;}
-	void removeDepth();
+	std::ostream& out;
+	std::istream& in;
+	void beginScope();
+	void endScope();
+	void clearScope();
 	void addVar(const std::string& name, int64_t value);
 	void addVar(const std::string& name, double value);
+	void setVar(const std::string& name, const InterpreterValue& value);
 	[[nodiscard]] InterpreterValue getVar(const std::string& name) const;
 public:
+	Interpreter(std::istream& in, std::ostream& out): in(in), out(out) {}
 	void visit(AssignNode& node) override;
 	void visit(Block& node) override;
-	void visit(Expression& node) override;
-	void visit(IdExpression& node) override;
-	void visit(StringExpression& node) override;
-	void visit(NumberExpression& node) override;
 	void visit(ForNode& node) override;
 	void visit(FunCall& node) override;
 	void visit(FunctionNode& node) override;
@@ -41,8 +53,13 @@ public:
 	void visit(Line& node) override;
 	void visit(WhileNode& node) override;
 	void visit(LoopModLine& node) override;
-	bool visitTree(MappedSyntaxTree& tree) override;
-
+	int64_t visitTree(MappedSyntaxTree& tree) override;
+	InterpreterValue calculate(Expression& node) override;
+	InterpreterValue calculate(IdExpression& node) override;
+	InterpreterValue calculate(StringExpression& node) override;
+	InterpreterValue calculate(NumberExpression& node) override;
+	InterpreterValue calculate(FunCallExpression& node) override;
+	~Interpreter() {clearScope();}
 };
 
 

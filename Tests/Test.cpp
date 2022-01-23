@@ -17,7 +17,7 @@
 #include "../Token/LoopMod.h"
 #include "../ErrorHandler.h"
 #include "../Parser.h"
-#include "../Interpreter/SemanticAnalizer.h"
+#include "../Interpreter/Interpreter.h"
 
 //Data source tests
 TEST(DataSourceTest, File) {
@@ -1281,6 +1281,7 @@ TEST(MappedSyntaxTreeTest, SameVariableName) {
 }
 
 
+
 TEST(MappedSyntaxTreeTest, IllegalFunctionName) {
     ErrorHandler::clear();
     auto&& [wasGood, result] = initMappedSyntaxTree("int print(){} int a; int b(){} double b;");
@@ -1292,33 +1293,28 @@ TEST(MappedSyntaxTreeTest, IllegalFunctionName) {
     ASSERT_NE(ErrorHandler::getErrorSize(),0);
 }
 
-TEST(SemanticTest, Good) {
-    auto&& [wasGood, result] = initMappedSyntaxTree("int f(){} int a; int main(){int i=4;if(i<4) return 1; else return 0;}");
-    EXPECT_TRUE(wasGood);
-    SemanticAnalizer analizer;
-    bool analizeResult = analizer.visitTree(result);
-    EXPECT_TRUE(analizeResult);
-    ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+TEST(InterpreterTest, OKTestSimple) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue= interpreter.visitTree(result);
+	ASSERT_EQ(retValue, 0);
 }
 
-TEST(UndeclaredVariableTest, Good) {
-    auto&& [wasGood, result] = initMappedSyntaxTree("int f(){} int a; int main(){print(b);}");
-    EXPECT_TRUE(wasGood);
-    SemanticAnalizer analizer;
-    bool analizeResult = analizer.visitTree(result);
-    EXPECT_FALSE(analizeResult);
-    ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+TEST(InterpreterTest, ReturnTest) {
+	ErrorHandler::clear();
+	auto&& [wasGood, result] = initMappedSyntaxTree("int main(){return 5;}");
+	ASSERT_TRUE(wasGood);
+	ASSERT_EQ(ErrorHandler::getErrorSize(),0);
+	std::ostringstream out;
+	Interpreter interpreter(std::cin, out);
+	int retValue= interpreter.visitTree(result);
+	ASSERT_EQ(retValue, 5);
+	ASSERT_EQ(out.str(),"");
 }
-
-/*TEST(SemanticTest, Good) {
-    auto&& [wasGood, result] = initMappedSyntaxTree("int f(){} int a; int main(){int i=4;if(i<4) return 1; else return 0;}");
-    EXPECT_TRUE(wasGood);
-    SemanticAnalizer analizer;
-    bool analizeResult = analizer.visitTree(result);
-    EXPECT_TRUE(analizeResult);
-    ASSERT_EQ(ErrorHandler::getErrorSize(),0);
-}*/
-
 
 
 int main(int argc, char** argv) {

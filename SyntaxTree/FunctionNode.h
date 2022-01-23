@@ -10,6 +10,7 @@
 #include <utility>
 #include "SyntaxTreeElement.h"
 #include "Block.h"
+#include "Parameter.h"
 
 enum TypeType: uint16_t;
 
@@ -18,9 +19,7 @@ struct FunctionNode: SyntaxTreeElement {
 	TypeType returnedType;
 	std::vector<Parameter> parameters;
 	Block block;
-	virtual void accept(Visitor& visitor) override {
-		visitor.visit(*this);
-	}
+	virtual void accept(Visitor& visitor) override;
 	explicit FunctionNode(std::string name="", TypeType returned=(TypeType)2u, std::vector<Parameter> parameters={}):
 		name(std::move(name)), returnedType(returned), parameters(std::move(parameters)) {}
 };

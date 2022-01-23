@@ -4,7 +4,7 @@
 
 #ifndef MTINTERPRETER_SYNTAXTREEELEMENT_H
 #define MTINTERPRETER_SYNTAXTREEELEMENT_H
-#include "../Interpreter/Visitor.h"
+class Visitor;
 
 class SyntaxTreeElement {
 public:

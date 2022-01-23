@@ -16,9 +16,7 @@ struct Parameter: public Line {
 	TypeType type;
 	std::string name;
 	Parameter(const TypeType& type, std::string name): type(type), name(std::move(name)) {}
-	virtual void accept(Visitor& visitor) override {
-		visitor.visit(*this);
-	}
+	virtual void accept(Visitor& visitor) override;
 };
 
 

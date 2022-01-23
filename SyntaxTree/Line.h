@@ -5,8 +5,8 @@
 #ifndef MTINTERPRETER_LINE_H
 #define MTINTERPRETER_LINE_H
 
+#include <cstdint>
 #include "SyntaxTreeElement.h"
-#include "../Interpreter/Visitor.h"
 
 enum LoopModT: uint16_t {
 	continueType,
@@ -16,17 +16,13 @@ enum LoopModT: uint16_t {
 class Line: public SyntaxTreeElement {
 public:
 	virtual ~Line() = default;
-	void accept(Visitor& visitor) override {
-		visitor.visit(*this);
-	}
+	virtual void accept(Visitor& visitor) override;
 };
 
 class LoopModLine: public Line {
 public:
 	LoopModT type;
-	void accept(Visitor& visitor) override {
-		visitor.visit(*this);
-	}
+	void accept(Visitor& visitor) override;
 	explicit LoopModLine(LoopModT type): type(type) {}
 };
 

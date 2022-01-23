@@ -12,85 +12,135 @@
 #include "../SyntaxTree/ForNode.h"
 #include "../SyntaxTree/ReturnNode.h"
 #include "../SyntaxTree/FunCall.h"
+#include "InterpreterExpressionTree.h"
+
 
 void Interpreter::addVar(const std::string &name, int64_t value){
-	vars[name][depth]=std::move(value);
+	actualScope->vars.insert({name, value});
 }
 void Interpreter::addVar(const std::string &name, double value){
-	vars[name][depth]=std::move(value);
+	actualScope->vars.insert({name, value});
+}
+
+
+void Interpreter::setVar(const std::string &name, const InterpreterValue& value) {
+	Scope* scope=actualScope;
+	while(scope && scope->vars.find(name)==scope->vars.end()) {
+		scope=scope->parent;
+	}
+	if(!scope && globalScope.vars.find(name)!=globalScope.vars.end()) {
+		scope = &globalScope;
+	}
+	if(scope) {
+		switch(scope->vars[name].index()) {
+			case int_:
+				if(value.index()==int_)
+					scope->vars[name]=value;
+				else
+					throw std::runtime_error("Trying to set illegal type to int variable "+name);
+				break;
+			case double_:
+				if(value.index()==int_)
+					scope->vars[name]=(double)std::get<int_>(value);
+				else if(value.index()==double_)
+					scope->vars[name]=value;
+				else
+					throw std::runtime_error("Trying to set illegal type to int variable "+name);
+				break;
+			default:
+				throw std::runtime_error("Trying to set to wrong type of variable "+name);
+		}
+	}
+	else
+		throw std::runtime_error("Trying to set unknown variable "+name);
 }
 
 InterpreterValue Interpreter::getVar(const std::string &name) const {
-	return vars.at(name).rbegin()->second;
-}
-
-void Interpreter::removeDepth() {
-	depth--;
-	for(auto&& [name, v]: vars) {
-		if(v.empty()) {
-			vars.erase(name);
-			continue;
-		}
-		if(v.rbegin()->first>depth) {
-			v.erase(v.rbegin()->first);
-		}
-		if(v.empty())
-			vars.erase(name);
+	const Scope* scope=actualScope;
+	while(scope && scope->vars.find(name)==scope->vars.end()) {
+		scope=scope->parent;
 	}
+	if(!scope && globalScope.vars.find(name)!=globalScope.vars.end()) {
+		scope = &globalScope;
+	}
+	if(scope)
+		return scope->vars.at(name);
+	else
+		throw std::runtime_error("Trying to get unknown variable " + name);
 }
 
-bool Interpreter::visitTree(MappedSyntaxTree &tree) {
-	depth=0;
+void Interpreter::beginScope() {
+	actualScope = actualScope ? new Scope(*actualScope) : new Scope();
+}
+
+void Interpreter::endScope() {
+	Scope* scope = actualScope;
+	actualScope=actualScope->parent;
+	delete scope;
+}
+
+void Interpreter::clearScope() {
+	while(actualScope) {
+		Scope* scope=actualScope->parent;
+		delete actualScope;
+		actualScope=scope;
+	}
+	actualScope=nullptr;
+}
+
+int64_t Interpreter::visitTree(MappedSyntaxTree &tree) {
+	globalScope={};
 	syntaxTree=&tree;
 	for(auto&& [name, var]: tree.globalVars) {
-		vars[name]={};
+		actualScope= new Scope;
 		if(var.type==int_)
-			vars[name][0]=0ll;
+			addVar(name,(int64_t)0);
 		else
-			vars[name][0]=0.0;
+			addVar(name,0.0);
 		var.accept(*this);
-		if(expressionTree) {
-			vars[name][0]=expressionTree->value;
-		}
-		expressionTree=std::nullopt;
 	}
 	tree.functions["main"].accept(*this);
-	std::cout << "Main function result was " << std::get<int_>(expressionTree->value) << "\n";
-	return ErrorHandler::getErrorSize()==0;
+	clearScope();
+	globalScope={};
+	return std::get<int_>(returnedValue);
 }
 
 void Interpreter::visit(AssignNode &node) {
-	node.expression->accept(*this);
-	if(vars[node.id].rbegin()->second.index()==double_ && expressionTree->value.index()==int_) {
-		expressionTree->value=(double)(std::get<int_>(expressionTree->value));
+	auto value = node.expression->calculate(*this);
+	if(getVar(node.id).index()==int_ && value.index()==double_) {
+		throw std::runtime_error("Trying to assign double to int");
 	}
-	auto& var = vars[node.id].rbegin()->second;
+	auto var = getVar(node.id);
 	switch(node.type) {
 		case assign2:
-			var=expressionTree->value;
+			setVar(node.id, value);
+			break;
 		case addAssign2:
-			var=getBinaryOperationValue(var,expressionTree->value,add);
+			setVar(node.id, getBinaryOperationValue(var,value,add));
+			break;
 		case minusAssign2:
-			var=getBinaryOperationValue(var,expressionTree->value,minus);
+			setVar(node.id, getBinaryOperationValue(var,value,minus));
+			break;
 		case multAssign2:
-			var=getBinaryOperationValue(var,expressionTree->value,mult);
+			setVar(node.id, getBinaryOperationValue(var,value,mult));
+			break;
 		case divAssign2:
-			var=getBinaryOperationValue(var,expressionTree->value,divi);
+			setVar(node.id, getBinaryOperationValue(var,value,divi));
+			break;
 		case moduloAssign2:
-			var=getBinaryOperationValue(var,expressionTree->value,mod);
+			setVar(node.id, getBinaryOperationValue(var,value,mod));
+			break;
 	}
-	vars[node.id].rbegin()->second=expressionTree->value;
-	expressionTree=std::nullopt;
 }
 
 void Interpreter::visit(Block &node) {
-	addDepth();
-	for(auto line: node.lines) {
+	beginScope();
+	for(const auto& line: node.lines) {
 		line->accept(*this);
 		if(blockEndMode!=NormalEnd)
 			break;
 	}
-	removeDepth();
+	endScope();
 }
 
 void Interpreter::visit(Line &node) {
@@ -106,15 +156,11 @@ void Interpreter::visit(Parameter &node) {
 }
 
 void Interpreter::visit(IfNode &node) {
-	node.condition->accept(*this);
-	if(std::get<int_>(expressionTree->value)!=0l) {
-		expressionTree=std::nullopt;
+	int64_t value = std::get<int_>(node.condition->calculate(*this));
+	if(value!=0l)
 		node.stat.accept(*this);
-	}
-	else if(node.elseStat) {
-		expressionTree=std::nullopt;
+	else if(node.elseStat)
 		node.elseStat->accept(*this);
-	}
 }
 
 void Interpreter::visit(InitNode &node) {
@@ -125,38 +171,34 @@ void Interpreter::visit(InitNode &node) {
 			addVar(v.first, 0.0);
 		if(!v.second)
 			continue;
-		v.second->accept(*this);
-		if(expressionTree) {
-			if(expressionTree->value.index()==double_ && vars[v.first][depth].index()==int_)
-				vars[v.first][depth]=(int64_t)std::get<double_>(expressionTree->value);
-			else
-				vars[v.first][depth]=expressionTree->value;
-		}
-		expressionTree=std::nullopt;
+		auto val = v.second->calculate(*this);
+		setVar(v.first, val);
 	}
 }
 
 void Interpreter::visit(ReturnNode &node) {
 	if(node.returnedValue)
-		node.returnedValue->accept(*this);
+		returnedValue=node.returnedValue->calculate(*this);
+	else
+		returnedValue=nullptr;
 	blockEndMode=ReturnEnd;
 }
 
 void Interpreter::visit(WhileNode &node) {
-	node.condition->accept(*this);
-	while(std::get<int_>(expressionTree->value)!=0l) {
-		expressionTree=std::nullopt;
+	int64_t condition = std::get<int_>(node.condition->calculate(*this));
+	while(condition!=0l) {
 		node.stat.accept(*this);
 		if(blockEndMode==BreakEnd || blockEndMode==ReturnEnd)
 			break;
+		condition = std::get<int_>(node.condition->calculate(*this));
 	}
 	if(blockEndMode!=ReturnEnd)
 		blockEndMode=NormalEnd;
-	expressionTree=std::nullopt;
 }
 
 void Interpreter::visit(FunctionNode &node) {
-	addDepth();
+	Scope* scope=actualScope;
+	actualScope=new Scope();
 	for(int i=0;i<node.parameters.size();i++) {
 		if(node.parameters[i].type==double_ && paramValues[i].index()==int_)
 			paramValues[i]=(double)std::get<int_>(paramValues[i]);
@@ -167,44 +209,39 @@ void Interpreter::visit(FunctionNode &node) {
 	}
 	paramValues.clear();
 	node.block.accept(*this);
-	removeDepth();
+	clearScope();
+	actualScope=scope;
 }
 
 void Interpreter::visit(FunCall &node) {
+	paramValues.clear();
 	for (const auto &p: node.params) {
-		p->accept(*this);
-		paramValues.push_back(expressionTree->value);
-		expressionTree = std::nullopt;
+		paramValues.push_back(p->calculate(*this));
 	}
 	if (node.name == "scan") {
+		if(!paramValues.empty())
+			throw std::runtime_error("Wrong number of parameters of scan");
 		int64_t a;
-		std::cin >> a;
-		NumberExpression number;
-		number.value=a;
-		number.accept(*this);
+		in >> a;
+		returnedValue=a;
 	}
 	else if(node.name=="scanf") {
+		if(!paramValues.empty())
+			throw std::runtime_error("Wrong number of parameters of scanf");
 		double a;
-		std::cin >> a;
-		NumberExpression number;
-		number.value=a;
-		number.accept(*this);
+		in >> a;
+		returnedValue=a;
 	}
 	else if(node.name=="print") {
-		switch(paramValues[0].index()) {
-			case TypeType::int_:
-				std::cout << std::get<int_>(paramValues[0]);
-				break;
-			case TypeType::double_:
-				std::cout << std::get<double_>(paramValues[0]);
-				break;
-			case TypeType::void_:
-				break;
-			case TypeType::string_:
-				std::cout << std::get<string_>(paramValues[0]);
-				break;
-		}
-
+		if(paramValues.size()!=1)
+			throw std::runtime_error("Wrong number of parameters of print");
+		std::visit(overloaded {
+			[&](int64_t a) {out << a;},
+			[&](double a) {out << a;},
+			[](std::nullptr_t a) {throw std::runtime_error("Unexpected void in print");},
+			[&](const std::string& a) {out << a;},
+		}, paramValues[0]);
+		returnedValue=nullptr;
 	}
 	else
 		syntaxTree->functions[node.name].accept(*this);
@@ -214,62 +251,52 @@ void Interpreter::visit(ForNode &node) {
 	node.init.accept(*this);
 	if(node.assignNodePre)
 		node.assignNodePre->accept(*this);
-	node.condition->accept(*this);
-	while(std::get<int_>(expressionTree->value)!=0l) {
-		expressionTree=std::nullopt;
+	int64_t condition = std::get<int_>(node.condition->calculate(*this));
+	while(condition!=0l) {
 		node.stat.accept(*this);
 		if(blockEndMode==BreakEnd || blockEndMode==ReturnEnd)
 			break;
 		if(node.assignNodeEach)
 			node.assignNodeEach->accept(*this);
+		condition = std::get<int_>(node.condition->calculate(*this));
 	}
 	if(blockEndMode!=ReturnEnd)
 		blockEndMode=NormalEnd;
-	expressionTree=std::nullopt;
 
 }
 
-void Interpreter::visit(StringExpression &node) {
-	if(!expressionTree)
-		expressionTree={string_,nullptr};
-	expressionTree->value=node.value;
+InterpreterValue Interpreter::calculate(StringExpression &node) {
+	return node.value;
 }
 
-void Interpreter::visit(NumberExpression &node) {
-	InterpreterValue value;
-	if(!expressionTree)
-		expressionTree={0,nullptr};
-	if(node.value.index()==0)
-		expressionTree->value=std::get<0>(node.value);
-	else
-		expressionTree->value=std::get<1>(node.value);
+InterpreterValue Interpreter::calculate(NumberExpression &node) {
+	return std::visit(overloaded {
+		[](int64_t arg) {return (InterpreterValue)arg;},
+		[](double arg) {return (InterpreterValue)arg;},
+		},
+		node.value);
 }
 
-void Interpreter::visit(IdExpression &node) {
-	if(!expressionTree)
-		expressionTree={string_,nullptr};
-	expressionTree->value=getVar(node.value);
+InterpreterValue Interpreter::calculate(IdExpression &node) {
+	auto var = getVar(node.value);
+	if(var.index()==void_)
+		throw(std::runtime_error("Unknown variable"));
+	return var;
 }
 
-void Interpreter::visit(Expression &node) {
-	if(!expressionTree) { //none is initialized
-		expressionTree={void_,nullptr};
-	}
-	expressionTree->setLeft(void_);
-	expressionTree=*expressionTree->getLeft();
-	node.expression1->accept(*this);
-	expressionTree=*expressionTree->getParent();
+InterpreterValue Interpreter::calculate(Expression &node) {
+	auto val1 = node.expression1->calculate(*this);
 	if(node.expression2) {
-		expressionTree->setRight(void_);
-		expressionTree=*expressionTree->getRight();
-		node.expression2->accept(*this);
-		expressionTree=*expressionTree->getParent();
-		expressionTree->value=getBinaryOperationValue(expressionTree->getLeft()->value,expressionTree->getRight()->value, node.op);
+		auto val2 = node.expression2->calculate(*this);
+		return getBinaryOperationValue(val1, val2, node.op);
 	}
-	else {
-		expressionTree->value= getUnaryOperationValue(expressionTree->getLeft()->value,node.op);
-	}
-	expressionTree->unsetLeft();
-	expressionTree->unsetRight();
-
+	else
+		return getUnaryOperationValue(val1, node.op);
 }
+
+InterpreterValue Interpreter::calculate(FunCallExpression &node) {
+	node.funCall->accept(*this);
+	return returnedValue;
+}
+
+

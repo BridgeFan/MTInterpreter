@@ -8,7 +8,6 @@
 #include "ErrorHandler.h"
 #include "Parser.h"
 #include "SyntaxTree/MappedSyntaxTree.h"
-#include "Interpreter/SemanticAnalizer.h"
 #include "Interpreter/Interpreter.h"
 
 int main(int argc, char** argv) {
@@ -42,7 +41,7 @@ int main(int argc, char** argv) {
 	}*/
 	//dataSource = std::make_unique<StringDataSource>("int b,c;\ndouble e;\nint f(){}");
 	ErrorHandler::setLimit(100);
-	dataSource = std::make_unique<StringDataSource>("int a; int main(){print(2);return 0;}");
+	dataSource = std::make_unique<StringDataSource>("int a; int main(){int b; print(b+\"\\n\");return 0;}");
 	Scaner scaner(std::move(dataSource));
 	Parser parser(scaner);
 	bool wereParserErrors = ErrorHandler::getErrorSize()>0;
@@ -56,17 +55,9 @@ int main(int argc, char** argv) {
 		ErrorHandler::showErrors(std::cout, std::cerr);
 		return 0;
 	}
-	SemanticAnalizer analizer;
-	if(!analizer.visitTree(mapped)) {
-		std::cerr << "An error occured making semantic analysis\n";
-		ErrorHandler::showErrors(std::cout, std::cerr);
-		return 0;
-	}
 	std::cout << "No compilation errors. Ready for interpreting\n";
-	Interpreter interpreter;
-	if(!interpreter.visitTree(mapped)) {
-		std::cerr << "An runtime error occured\n";
-		ErrorHandler::showErrors(std::cout,std::cerr);
-	}
+	Interpreter interpreter(std::cin, std::cout);
+	int64_t returnedValue = interpreter.visitTree(mapped);
+	std::cout << "Main function result was " << returnedValue;
 	return 0;
 }

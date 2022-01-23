@@ -29,6 +29,11 @@ enum TypeType: uint16_t;
 enum OperatorType: uint16_t;
 enum LoopModT: uint16_t;
 
+std::string toString(OperatorType type);
+std::string toString(LoopModT type);
+std::string toString(TypeType type);
+
+
 class ErrorHandler {
 	static int limit;
 	static std::vector<std::pair<ErrorPlace, std::string> > errorInfo;

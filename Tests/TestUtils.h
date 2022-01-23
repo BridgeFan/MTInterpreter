@@ -60,4 +60,6 @@ std::pair<bool, MappedSyntaxTree> initMappedSyntaxTree(std::string&& a) {
     return {wasGood, tree};
 }
 
+
+
 #endif //MTINTERPRETER_TESTUTILS_H

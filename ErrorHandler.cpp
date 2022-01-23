@@ -138,7 +138,18 @@ void ErrorHandler::addSemanticError(SemanticErrorType type, const std::string& f
 	}
 }
 
-std::string toString(TypeType type);
+std::string toString(TypeType type) {
+	switch(type) {
+		case int_:
+			return "int";
+		case double_:
+			return "double";
+		case void_:
+			return "void";
+		case string_:
+			return "string";
+	}
+}
 
 void ErrorHandler::addWrongAssignError(const std::string& func, const std::string& name, TypeType varType, TypeType gotType) {
 	errorInfo.emplace_back(SemanticError, "Function "+func+": Wrong assigned type "+toString(gotType)+" ("+name+" type is "+toString(varType)+")");
@@ -180,6 +191,7 @@ std::string toString(OperatorType type) {
 		case toIntConversion: return "(int)";
 		case toDoubleConversion: return "(double)";
 	}
+	return "";
 }
 
 std::string toString(LoopModT type) {
@@ -187,7 +199,7 @@ std::string toString(LoopModT type) {
 		case continueType: return "continue";
 		case breakType: return "break";
 	}
-
+	return "";
 }
 
 void ErrorHandler::addIllegalOperationError(const std::string &func, OperatorType type, TypeType varType1,
