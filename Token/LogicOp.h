@@ -16,7 +16,6 @@ class LogicOp: public Token {
 	LogicOpType subtype;
 public:
 	LogicOp(int line, int column, LogicOpType type);
-	bool addChar(char c) override;
 	LogicOpType getSubtype() const;
 };
 

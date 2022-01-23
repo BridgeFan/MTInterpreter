@@ -3,12 +3,8 @@
 //
 
 #include "RelOp.h"
-bool RelOp::addChar(char c) {
-	return true;
-}
 
-RelOp::RelOp(int line, int column, RelOpType type): Token(line, column) {
-	this->type = RelOp_;
+RelOp::RelOp(int line, int column, RelOpType type): Token(RelOp_, line, column) {
 	subtype = type;
 }
 

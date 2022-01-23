@@ -3,6 +3,10 @@
 //
 
 #include "Scaner.h"
+
+#include <memory>
+#include <map>
+#include <cmath>
 #include "Token/IdToken.h"
 #include "Token/LoopMod.h"
 #include "Token/TypeName.h"
@@ -14,6 +18,10 @@
 #include "Token/Conversion.h"
 #include "Token/StringToken.h"
 #include "Token/ErrorToken.h"
+#include "Token/Util.h"
+std::map<char, char> stringSpecialChars = {{'\\','\\'},{'\'','\''},{'\"','\"'},{'\?','\?'},
+										   {'a','\a'},{'b','\b'},{'f','\f'},{'n','\n'},{'r','\r'},
+										   {'t','\t'},{'v','\v'}};
 
 void Scaner::getNextChar() {
 	actualChar =source->getNextChar();
@@ -25,106 +33,134 @@ void Scaner::getNextChar() {
 	else
 		col++;
 }
+
 std::unique_ptr<Token> Scaner::processString() {
-	std::unique_ptr<Token> token(new StringToken(line, col-1, ""));
-	while(true) {
+	int l=line, c=col;
+	std::string val;
+	getNextChar();
+	while(actualChar!='\"') {
+		if(val.length()>=Util::maxLength)
+			return std::unique_ptr<Token>(new ErrorToken(l,c,internal,String_,ErrorType::overflow));
+		if(actualChar=='\\') {
+			getNextChar();
+			if(stringSpecialChars.find(actualChar)!=stringSpecialChars.end())
+				val += stringSpecialChars[actualChar];
+			else
+				return std::unique_ptr<Token>(new ErrorToken(l,c,internal,String_));
+		}
+		else if (Util::isStringCompatible(actualChar)) {
+			val += actualChar;
+		}
+		else if(actualChar!='\"') {
+			//error
+			val += actualChar;
+			return std::unique_ptr<Token>(new ErrorToken(l,c,internal,String_));
+		}
 		getNextChar();
-		try {
-			if (token->addChar(actualChar))
-				break;
-		}
-		catch(std::bad_exception&) {
-			return std::unique_ptr<Token>(new ErrorToken(token->getLine(),token->getColumn(),internal,token->getType(),ErrorType::overflow));
-		}
-		catch(...) {
-			return std::unique_ptr<Token>(new ErrorToken(token->getLine(),token->getColumn(),internal,token->getType()));
-		}
 	}
-	actualChar='\0';
-	return token;
+	return std::make_unique<StringToken>(l, c-1, val);
 }
 
-void Scaner::checkSpecialIds(std::unique_ptr<Token>& token) {
-	if(typeid(*token)!=typeid(IdToken))
-		return;
-	std::string raw = dynamic_cast<IdToken *>(token.get())->getValue();
+std::unique_ptr<Token> Scaner::checkSpecialIds(int l, int c, const std::string& val) {
 	//check special keywords
-	if(raw=="if") {
-		token.reset(new If(token->getLine(),token->getColumn()));
+	if(val=="if") {
+		return std::make_unique<Token>(TokenType::If_, l, c);
 	}
-	if(raw=="else") {
-		token.reset(new Else(token->getLine(),token->getColumn()));
+	if(val=="else") {
+		return std::make_unique<Token>(TokenType::Else_, l, c);
 	}
-	if(raw=="while") {
-		token.reset(new While(token->getLine(),token->getColumn()));
+	if(val=="while") {
+		return std::make_unique<Token>(TokenType::While_, l, c);
 	}
-	if(raw=="for") {
-		token.reset(new For(token->getLine(),token->getColumn()));
+	if(val=="for") {
+		return std::make_unique<Token>(TokenType::For_, l, c);
 	}
-	if(raw=="return") {
-		token.reset(new Return(token->getLine(),token->getColumn()));
+	if(val=="return") {
+		return std::make_unique<Token>(TokenType::Return_, l, c);
 	}
-	if(raw=="continue") {
-		token.reset(new LoopMod(token->getLine(),token->getColumn(),continueMod));
+	if(val=="continue") {
+		return std::make_unique<LoopMod>(l,c,continueMod);
 	}
-	if(raw=="break") {
-		token.reset(new LoopMod(token->getLine(),token->getColumn(),breakMod));
+	if(val=="break") {
+		return std::make_unique<LoopMod>(l,c,breakMod);
 	}
-	if(raw=="int") {
-		token.reset(new TypeName(token->getLine(),token->getColumn(),intType));
+	if(val=="int") {
+		return std::make_unique<TypeName>(l,c,intType);
 	}
-	if(raw=="double") {
-		token.reset(new TypeName(token->getLine(),token->getColumn(),doubleType));
+	if(val=="double") {
+		return std::make_unique<TypeName>(l,c,doubleType);
 	}
+	if(val=="void") { //needed for function definition
+		return std::make_unique<Token>(Void_, l,c);
+	}
+	return std::make_unique<IdToken>(l,c,val);
 }
 
 std::unique_ptr<Token> Scaner::processId() {
-	std::unique_ptr<Token> token(new IdToken(line, col-1, {actualChar}));
-	while(true) {
+	int l=line;
+	int c=col-1;
+	std::string id={actualChar};
+	while(actualChar!=eof) {
 		getNextChar();
-		try {
-			if(token->addChar(actualChar))
-				break;
-		}
-		catch(std::bad_exception&) {
-			return std::unique_ptr<Token>(new ErrorToken(token->getLine(),token->getColumn(),internal,token->getType(),ErrorType::overflow));
-		}
-		catch(...) {
-			return std::unique_ptr<Token>(new ErrorToken(token->getLine(),token->getColumn(),internal,token->getType()));
-		}
+		if(id.length()>=Util::maxLength)
+			return std::unique_ptr<Token>(new ErrorToken(l,c,internal,Id_,ErrorType::overflow));
+		if (Util::isLetter(actualChar) || Util::isDigit(actualChar))
+			id += actualChar;
+		else if (Util::isDefined(actualChar) || Util::isWhite(actualChar) || actualChar==eof)
+			break;
+		else
+			return std::unique_ptr<Token>(new ErrorToken(l,c,internal,Id_));
 	}
-	checkSpecialIds(token);
-	return token;
+	return checkSpecialIds(l,c,id);
 }
 
-std::unique_ptr<Token> Scaner::processNumber(int64_t value, NumberState nState) {
-	std::unique_ptr<Token> token(new Number(line, col-1, value, nState));
-	while(true) {
+std::unique_ptr<Token> Scaner::processNumber() {
+	int l=line;
+	int c=col-1;
+	int64_t val1 = 0;
+	int64_t val2 = 0;
+	int val2Pos = 0;
+	//first loop
+	while(Util::isDigit(actualChar)) {
+		int64_t a=actualChar-'0';
+		if(val1>(INT64_MAX-1)/10) {
+			return std::make_unique<ErrorToken>(l,c,internal,Number_,ErrorType::overflow);
+		}
+		val1*=10;
+		val1+=a;
 		getNextChar();
-		if(actualChar==eof)
-			break;
-		try {
-			if (token->addChar(actualChar))
-				break;
-		}
-		catch(std::bad_exception&) {
-			return std::unique_ptr<Token>(new ErrorToken(token->getLine(),token->getColumn(),internal,token->getType(),ErrorType::overflow));
-		}
-		catch(...) {
-			return std::unique_ptr<Token>(new ErrorToken(token->getLine(),token->getColumn(),internal,token->getType()));
-		}
 	}
-	return token;
+	if(Util::isLetter(actualChar))
+		return std::make_unique<ErrorToken>(l,c,internal,Number_);
+	if(actualChar!='.')
+		return std::make_unique<Number>(l,c,val1);
+	getNextChar();
+	//second loop
+	while(Util::isDigit(actualChar)) {
+		int64_t b=actualChar-'0';
+		if(val2>(INT64_MAX-1)/10) {
+			getNextChar();
+			continue;
+		}
+		val2*=10;
+		val2+=b;
+		val2Pos++;
+		getNextChar();
+	}
+	if(Util::isLetter(actualChar))
+		return std::make_unique<ErrorToken>(l,c,internal,Number_);
+	double val3=(double)val1+((double)val2/std::pow(10.0,val2Pos));
+	return std::make_unique<Number>(l,c,val3);
 }
 
 std::unique_ptr<Token> Scaner::getNextToken() {
-	if(hasEnded())
-		return {};
+	/*if(hasEnded())
+		return {};*/
 	if(actualChar=='\0') {
 		getNextChar();
 	}
 	std::unique_ptr<Token> token;
-	while(Token::isWhite(actualChar)) {
+	while(Util::isWhite(actualChar)) {
 		getNextChar();
 	}
 	if(hasEnded() && actualChar==eof)
@@ -132,22 +168,22 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 	internal="";
 	int retLine=line;
 	int retCol=col;
-	if(Token::isDefined(actualChar)) {
+	/*if(Token::isDefined(actualChar))*/ {
 		if(actualChar==';') {
 			actualChar='\0';
-			return std::unique_ptr<Token>(new End(retLine, retCol));
+			return std::make_unique<Token>(End_, retLine, retCol);
 		}
 		if(actualChar=='{') {
 			actualChar='\0';
-			return std::unique_ptr<Token>(new BlockBegin(retLine, retCol));
+			return std::make_unique<Token>(BlockBegin_, retLine, retCol);
 		}
 		if(actualChar=='}') {
 			actualChar='\0';
-			return std::unique_ptr<Token>(new BlockEnd(retLine, retCol));
+			return std::make_unique<Token>(BlockEnd_, retLine, retCol);
 		}
 		if(actualChar==',') {
 			actualChar='\0';
-			return std::unique_ptr<Token>(new Comma(retLine, retCol));
+			return std::make_unique<Token>(Comma_, retLine, retCol);
 		}
 		if(actualChar=='!') {
 			getNextChar();
@@ -156,7 +192,7 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 				return std::unique_ptr<Token>(new RelOp(retLine, retCol, not_equal));
 			}
 			else
-				return std::unique_ptr<Token>(new NegOp(retLine, retCol));
+				return std::make_unique<Token>(NegOp_, retLine, retCol);
 		}
 		if(actualChar=='+') {
 			getNextChar();
@@ -165,7 +201,7 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 				return std::unique_ptr<Token>(new Assign(retLine, retCol, addAssign));
 			}
 			else
-				return std::unique_ptr<Token>(new Add(retLine, retCol));
+				return std::make_unique<Token>(Add_, retLine, retCol);
 		}
 		if(actualChar=='-') {
 			getNextChar();
@@ -174,7 +210,7 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 				return std::unique_ptr<Token>(new Assign(retLine, retCol, minusAssign));
 			}
 			else
-				return std::unique_ptr<Token>(new Minus(retLine, retCol));
+				return std::make_unique<Token>(Minus_, retLine, retCol);
 		}
 		if(actualChar=='*') {
 			getNextChar();
@@ -221,7 +257,7 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 				return std::unique_ptr<Token>(new MultOp(retLine, retCol,divide));
 		}
 		if(actualChar=='.') {
-			return processNumber(0,plus_divide);
+			return processNumber();
 		}
 		if(actualChar=='%') {
 			getNextChar();
@@ -280,22 +316,22 @@ std::unique_ptr<Token> Scaner::getNextToken() {
 			}
 		}
 		if(actualChar=='(') {
-			actualChar='0';
-			return std::unique_ptr<Token>(new ParBegin(retLine,retCol));
+			actualChar='\0';
+			return std::make_unique<Token>(ParBegin_, retLine,retCol);
 		}
 		if(actualChar==')') {
 			actualChar='\0';
-			return std::unique_ptr<Token>(new ParEnd(retLine,retCol));
+			return std::make_unique<Token>(ParEnd_, retLine,retCol);
 		}
 	}
 	if(actualChar=='\"') {
 		return processString();
 	}
-	if(Token::isLetter(actualChar)) {
+	if(Util::isLetter(actualChar)) {
 		return processId();
 	}
-	else if(Token::isDigit(actualChar)) {
-		return processNumber(actualChar-'0', plus);
+	else if(Util::isDigit(actualChar)) {
+		return processNumber();
 	}
 	else {
 		return std::unique_ptr<Token>(new ErrorToken(retLine, retCol, {actualChar}, Error_));

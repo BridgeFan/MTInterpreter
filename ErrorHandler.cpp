@@ -6,13 +6,14 @@
 #include <map>
 #include "ErrorHandler.h"
 std::map<TokenType, std::string> tokenTypeNames;
-std::vector<std::string> ErrorHandler::errorInfo;
+std::vector<std::pair<ErrorPlace, std::string> > ErrorHandler::errorInfo;
+int ErrorHandler::limit = 1024;
 
 int ErrorHandler::getErrorSize() {
 	return errorInfo.size();
 }
 
-void ErrorHandler::addScanerError(ErrorToken &token) {
+void ErrorHandler::addError(ErrorPlace place, const ErrorToken& token) {
 	if(tokenTypeNames.empty()) {
 		tokenTypeNames[TokenType::Error_]="Error";
 		tokenTypeNames[TokenType::String_]="String";
@@ -45,26 +46,67 @@ void ErrorHandler::addScanerError(ErrorToken &token) {
 	switch(token.getErrorType()) {
 		case ErrorType::unexpectedCharacter:
 			str+="Unexpected character (" + token.getValue() +") when trying to make token of ";
+			str+=tokenTypeNames[token.getExpected()]+" type";
 			break;
 		case ErrorType::overflow:
 			str+="Too great value of token of ";
+			str+=tokenTypeNames[token.getExpected()]+" type";
+			break;
+		case ErrorType::unexpectedEof:
+			str+="Unexpected end of file but expected ";
+			str+=tokenTypeNames[token.getExpected()]+" type";
+			break;
+		case ErrorType::unexpectedToken:
+			str+="Expected token of type " + tokenTypeNames[token.getExpected()] + " but got " + tokenTypeNames[token.getGotType()];
+			break;
+		case ErrorType::wrongEnd:
+			str+="Wrong ending of expression";
+			break;
+		case ErrorType::modifyAssignToUninitialized:
+			str+="Modify assign to unitialized variable";
+			break;
+		case ErrorType::unexpectedParEnd:
+			str+="Unexpected )";
+			break;
+		case ErrorType::unexpectedParBegin:
+			str+="Unexpected (";
+			break;
+		case ErrorType::unexpectedEndOfExpression:
+			str+="Unexpected end of expression. Too few arguments of binary operator " + tokenTypeNames[token.getExpected()];
 			break;
 	}
-	str+=tokenTypeNames[token.getExpected()]+" type";
-	errorInfo.push_back(str);
+	errorInfo.emplace_back(place, str);
+	if(errorInfo.size()>=limit) {
+		showErrors(std::cout,std::cerr);
+		std::cout << "Too many errors!";
+		exit(EXIT_FAILURE);
+	}
 }
 
-void ErrorHandler::showErrors(std::ostream& out) {
+void ErrorHandler::showErrors(std::ostream& okOut, std::ostream& out) {
 	if(getErrorSize()==0) {
-		out << "No errors\n";
+		okOut << "No errors\n";
 		return;
 	}
 	out << "Errors found: "+ std::to_string(ErrorHandler::getErrorSize())+"\n";
-	for(const std:: string& s: errorInfo) {
-		out << s << "\n";
+	for(auto&& [place, str]: errorInfo) {
+		if(place==ScanerError)
+			out << "Scaner error: ";
+		if(place==ParserError)
+			out << "Parser error: ";
+		out << str << "\n";
 	}
 }
 
 void ErrorHandler::clear() {
 	errorInfo.clear();
+}
+
+void ErrorHandler::setLimit(int a) {
+	limit=a;
+	if(errorInfo.size()>=limit) {
+		showErrors(std::cout,std::cerr);
+		std::cout << "Too many errors!";
+		exit(EXIT_FAILURE);
+	}
 }

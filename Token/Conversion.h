@@ -16,7 +16,6 @@ class Conversion: public Token {
 	ConversionType subtype;
 public:
 	Conversion(int line, int column, ConversionType type);
-	bool addChar(char c) override;
 	ConversionType getSubtype() const;
 };
 

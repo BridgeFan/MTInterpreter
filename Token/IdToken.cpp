@@ -3,22 +3,11 @@
 //
 
 #include "IdToken.h"
-#include "../ErrorHandler.h"
-#include "../DataSource/DataSource.h"
 
-bool IdToken::addChar(char c) {
-	if(value.length()>=Token::maxLength)
-		throw std::bad_exception();
-	if (isLetter(c) || isDigit(c))
-		value += c;
-	else if (isDefined(c) || isWhite(c) || c==eof)
-		return true;
-	else
-		throw std::exception();
-	return false;
+IdToken::IdToken(int line, int column, const std::string &raw) : Token(Id_, line, column) {
+	value=raw;
 }
 
-IdToken::IdToken(int line, int column, const std::string &raw) : Token(line, column) {
-	value=raw;
-	type = TokenType::Id_;
+const std::string &IdToken::getValue() const {
+	return value;
 }

@@ -6,11 +6,12 @@
 #include "Scaner.h"
 #include "Token/ErrorToken.h"
 #include "ErrorHandler.h"
+#include "Parser.h"
 
 int main(int argc, char** argv) {
 	//TODO: Conversion token will be created in parser, not in scaner to reduce wrong interpretation
 	std::unique_ptr<DataSource> dataSource;
-	if(argc<2) {
+	/*if(argc<2) {
 		std::cout << "Usage:\n";
 		std::cout << "file: provide file path in second parameter\n";
 		std::cout << "str: provide string in second parameter\n";
@@ -35,13 +36,13 @@ int main(int argc, char** argv) {
 				dataSource = std::make_unique<StringDataSource>(argv[2]);
 			}
 		}
-	}
+	}*/
+	//dataSource = std::make_unique<StringDataSource>("int b,c;\ndouble e;\nint f(){}");
+	ErrorHandler::setLimit(100);
+	dataSource = std::make_unique<StringDataSource>("int a; void f(){}");
 	Scaner scaner(std::move(dataSource));
-	auto tokenPtr = scaner.getNextToken();
-	if(tokenPtr->getType()==Error_) {
-		auto* token = dynamic_cast<ErrorToken*>(tokenPtr.get());
-		ErrorHandler::addScanerError(*token);
-	}
-	ErrorHandler::showErrors(std::cout);
+	Parser parser(scaner);
+	SyntaxTree tree = parser.parse();
+	ErrorHandler::showErrors(std::cout,std::cerr);
 	return 0;
 }

@@ -18,7 +18,6 @@ class MultOp: public Token {
 	MultOpType subtype;
 public:
 	MultOp(int line, int column, MultOpType type);
-	bool addChar(char c) override;
 	MultOpType getSubtype() const;
 };
 

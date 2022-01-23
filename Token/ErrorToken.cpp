@@ -4,12 +4,17 @@
 
 #include "ErrorToken.h"
 
-bool ErrorToken::addChar(char c) {
-	return true;
-}
-
-ErrorToken::ErrorToken(int line, int column, const std::string &raw, TokenType expectedType, ErrorType eType): Token(line, column), value(raw) {
-	type = Error_;
+ErrorToken::ErrorToken(int line, int column, const std::string &raw, TokenType expectedType, ErrorType eType): Token(Error_, line, column), value(raw) {
 	errorType = eType;
 	this->expectedType=expectedType;
+}
+
+ErrorToken::ErrorToken(int line, int column, TokenType gotType, TokenType expectedType): ErrorToken(line,column,"",expectedType,unexpectedToken) {
+	this->gotType=gotType;
+}
+ErrorToken::ErrorToken(int line, int column, AssignType gotAssignType): ErrorToken(line,column,"",Assign_,modifyAssignToUninitialized) {
+	this->gotAssignType=gotAssignType;
+}
+
+ErrorToken::ErrorToken(int line, int column, ErrorType errorType): ErrorToken(line,column,"",Id_,unexpectedParEnd) {
 }

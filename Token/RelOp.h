@@ -20,7 +20,6 @@ class RelOp: public Token {
 	RelOpType subtype;
 public:
 	RelOp(int line, int column, RelOpType type);
-	bool addChar(char c) override;
 	RelOpType getSubtype() const;
 };
 

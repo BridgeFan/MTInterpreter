@@ -4,12 +4,7 @@
 
 #include "MultOp.h"
 
-bool MultOp::addChar(char c) {
-	return true;
-}
-
-MultOp::MultOp(int line, int column, MultOpType type): Token(line, column) {
-	this->type = MultOp_;
+MultOp::MultOp(int line, int column, MultOpType type): Token(MultOp_, line, column) {
 	subtype = type;
 }
 
