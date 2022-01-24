@@ -9,10 +9,12 @@
 #include "Line.h"
 #include <variant>
 #include <any>
+#include <memory>
 
 
 struct Block: public Line {
 	std::vector<std::shared_ptr<Line> > lines;
+	void accept(Visitor& visitor) override;
 };
 
 #endif //MTINTERPRETER_BLOCKNODE_H

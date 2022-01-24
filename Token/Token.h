@@ -29,7 +29,7 @@ enum TokenType: uint16_t {
 	Number_=23u,
 	Error_=24u,
 	Void_=25u,
-	_eof = UINT16_MAX
+	EndOfFile = UINT16_MAX
 };
 class Token {
 protected:

@@ -23,5 +23,5 @@ bool Util::isDefined(char a) {
 }
 
 bool Util::isStringCompatible(char a) {
-	return (a>=32 && a!=127);
+	return (a>=32 && a!=127 && a!='\"');
 }

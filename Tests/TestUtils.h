@@ -8,6 +8,7 @@
 #include "../Token/StringToken.h"
 #include "../Token/IdToken.h"
 #include "../Parser.h"
+#include "../SyntaxTree/MappedSyntaxTree.h"
 
 Scaner initScaner(std::string&& value) {
 	std::unique_ptr<DataSource> source = std::make_unique<StringDataSource>(std::move(value));
@@ -49,5 +50,16 @@ bool isIdValueCorrect(IdToken& token, const std::string& value) {
 bool isStringValueCorrect(StringToken& token, const std::string& value) {
 	return value == token.getValue();
 }
+
+std::pair<bool, MappedSyntaxTree> initMappedSyntaxTree(std::string&& a) {
+    Scaner scaner = initScaner(std::move(a));
+    Parser parser(scaner);
+    SyntaxTree result = parser.parse();
+    MappedSyntaxTree tree;
+    bool wasGood = tree.mapTree(result);
+    return {wasGood, tree};
+}
+
+
 
 #endif //MTINTERPRETER_TESTUTILS_H

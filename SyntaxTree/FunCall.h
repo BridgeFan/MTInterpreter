@@ -4,13 +4,18 @@
 
 #ifndef MTINTERPRETER_FUNCALL_H
 #define MTINTERPRETER_FUNCALL_H
-#include "../Token/IdToken.h"
-#include "Expression.h"
+
 #include "Line.h"
+#include <string>
+#include <vector>
+#include <memory>
+
+class Expression;
 
 struct FunCall: public Line {
-	std::unique_ptr<IdToken> name;
-	std::vector<std::shared_ptr<Expression> > params;
+	std::string name;
+	std::vector<std::unique_ptr<Expression> > params;
+	virtual void accept(Visitor& visitor) override;
 };
 
 #endif //MTINTERPRETER_FUNCALL_H

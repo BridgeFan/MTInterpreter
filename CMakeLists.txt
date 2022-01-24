@@ -22,4 +22,5 @@ add_executable(MTInterpreter main.cpp
         Token/Number.cpp
         Token/ErrorToken.cpp
         Token/Util.cpp
-        Parser.cpp)
+        Parser.cpp
+        Interpreter/Interpreter.cpp Interpreter/Interpreter.h Interpreter/InterpreterExpressionTree.cpp SyntaxTree/Expression.cpp SyntaxTree/FunCall.cpp SyntaxTree/Line.cpp SyntaxTree/Parameter.cpp SyntaxTree/Block.cpp SyntaxTree/FunctionNode.cpp SyntaxTree/MappedSyntaxTree.cpp)

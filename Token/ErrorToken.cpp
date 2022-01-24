@@ -9,7 +9,7 @@ ErrorToken::ErrorToken(int line, int column, const std::string &raw, TokenType e
 	this->expectedType=expectedType;
 }
 
-ErrorToken::ErrorToken(int line, int column, TokenType gotType, TokenType expectedType): ErrorToken(line,column,"",expectedType,unexpectedToken) {
+ErrorToken::ErrorToken(int line, int column, TokenType gotType, TokenType expectedType): ErrorToken(line,column,"",expectedType,wrongToken) {
 	this->gotType=gotType;
 }
 ErrorToken::ErrorToken(int line, int column, AssignType gotAssignType): ErrorToken(line,column,"",Assign_,modifyAssignToUninitialized) {

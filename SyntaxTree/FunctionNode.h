@@ -6,13 +6,22 @@
 #define MTINTERPRETER_FUNCTIONNODE_H
 
 #include <memory>
-#include "../Token/IdToken.h"
+#include <string>
+#include <utility>
+#include "SyntaxTreeElement.h"
+#include "Block.h"
+#include "Parameter.h"
 
-struct FunctionNode {
-	IdToken id;
-	std::variant<TypeName, Token> returnedType; //only TypeName or Void_
+enum TypeType: uint16_t;
+
+struct FunctionNode: SyntaxTreeElement {
+	std::string name;
+	TypeType returnedType;
 	std::vector<Parameter> parameters;
 	Block block;
+	virtual void accept(Visitor& visitor) override;
+	explicit FunctionNode(std::string name="", TypeType returned=(TypeType)2u, std::vector<Parameter> parameters={}):
+		name(std::move(name)), returnedType(returned), parameters(std::move(parameters)) {}
 };
 
 

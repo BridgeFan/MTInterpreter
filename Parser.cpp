@@ -6,6 +6,13 @@
 #include "ErrorHandler.h"
 #include "SyntaxTree/SyntaxTree.h"
 #include "Token/Conversion.h"
+#include "Token/StringToken.h"
+#include "Token/TypeName.h"
+#include "Token/IdToken.h"
+#include "Token/MultOp.h"
+#include "Token/RelOp.h"
+#include "Token/LogicOp.h"
+#include "Token/LoopMod.h"
 #include <algorithm>
 #include <utility>
 #include <iostream>
@@ -14,154 +21,187 @@
 #include <map>
 
 const std::vector<TokenType> anyToken = {Id_,If_,Else_,While_,For_,LoopMod_,TypeName_,ParBegin_,ParEnd_,End_,Comma_,NegOp_,
-		Minus_,	Add_,Return_,Assign_,MultOp_,RelOp_,BlockBegin_,BlockEnd_,Logic_,Conversion_,String_,Number_,Void_}; //all possible values expect Error_
+		Minus_,	Add_,Return_,Assign_,MultOp_,RelOp_,BlockBegin_,BlockEnd_,Logic_,Conversion_,String_,Number_,Void_}; //all possible values expect Error_ and EndOfFile
 
-Parser::Parser(Scaner& scaner): scaner(scaner), prevToken(nullptr) {
+Parser::Parser(Scaner& scaner): scaner(scaner) {
 }
 
-Parser::Parser(Scaner&& scaner): scaner(scaner), prevToken(nullptr) {
+Parser::Parser(Scaner&& scaner): scaner(scaner) {
 }
 
-std::unique_ptr<Token> Parser::getScanerToken(std::vector<TokenType> allowedTypes) {
-	std::unique_ptr<Token> token;
-	wasWrongType=false;
-	//allow EOF as UINT16_MAX
-	if(prevToken)
-		token = std::move(prevToken);
-	else
-		token = scaner.getNextToken();
-	if(!token) {
-		if(std::find(allowedTypes.begin(),allowedTypes.end(),_eof)!=allowedTypes.end())
-			return nullptr;
-		auto error = ErrorToken(scaner.getLine(),scaner.getColumn(),"",Error_,unexpectedEof);
-		ErrorHandler::addError(ParserError,error);
-		return nullptr;
+std::unique_ptr<Token> Parser::getNextToken() {
+	if(!prevTokens.empty()) {
+		auto token = std::move(prevTokens.top());
+		prevTokens.pop();
+		return token;
 	}
+	else
+		return scaner.getNextToken();
+}
+
+ErrorType Parser::checkToken(const std::unique_ptr<Token>& token, std::vector<TokenType> allowedTypes) {
+	//returns noError=0 (false) if token is ok and positive value if token is wrong
 	if(token->getType()==Error_) {
 		ErrorHandler::addError(ScanerError, *dynamic_cast<ErrorToken*>(token.get()));
-		return nullptr;
+		return errorToken;
 	}
 	if(std::find(allowedTypes.begin(),allowedTypes.end(),token->getType())==allowedTypes.end()) {
-		ErrorHandler::addError(ParserError,ErrorToken(token->getLine(),token->getColumn(),token->getType(),allowedTypes[0]));
-		wasWrongType=true;
-		//return nullptr;
+		return wrongToken;
 	}
-	if(token->getType()==18u) {
-		;
+	return noError;
+}
+
+void Parser::addError(const std::unique_ptr<Token>& token, ErrorType type, std::vector<TokenType> allowedTypes) {
+	switch(type) {
+		case noError:
+			break;
+		case wrongToken:
+			ErrorHandler::addError(ParserError,ErrorToken(token->getLine(),token->getColumn(),token->getType(),allowedTypes[0]));
+			break;
+		case errorToken:
+			//error already added by getNextToken()
+			break;
+		default:
+			break;
 	}
-	return token;
+
 }
 
 std::optional<Block> Parser::getBlock() {
-	//assumes position after BlockBegin
+	auto beginToken = getNextToken();
+	if(checkToken(beginToken, BlockBegin_)!=noError) {
+		prevTokens.push(std::move(beginToken));
+		return std::nullopt;
+	}
 	Block block;
 	std::unique_ptr<Line> line;
 	std::unique_ptr<Token> token;
-	while((token=getScanerToken(anyToken)) && token->getType()!=BlockEnd_) {
+	while((token=getNextToken()) && checkToken(token, {BlockEnd_,EndOfFile})==wrongToken) {
+		prevTokens.push(std::move(token));
 		line=getLine();
 		if(!line) {
 			return block;
 		}
-		else if(typeid(*line)==typeid(Line))
-			continue;
 		block.lines.emplace_back(std::move(line));
 	}
 	if(!token) {
 		return block;
 	}
 	if(token->getType()!=BlockEnd_) {
-		ErrorHandler::addError(ParserError,ErrorToken(token->getLine(),token->getColumn(),token->getType(),BlockEnd_));
+		addError(token, wrongToken, {BlockEnd_});
 	}
 	return block;
 }
 
-std::unique_ptr<Line> Parser::getLine(std::unique_ptr<Token> token) {
-	//for blocks it assumes position after {
-	if(!token)
-		token = getScanerToken({End_,If_,While_,For_,BlockBegin_,Return_,Id_,TypeName_,BlockEnd_});
-	if(!token)
-		return nullptr; //no line wasn't able to create
-	if(wasWrongType)
-		return nullptr; //line isn't able to create
+std::unique_ptr<Line> Parser::getLine() {
+	auto token = getNextToken();
 	if(token->getType()==BlockEnd_) {
 		return nullptr;
 	}
 	if(token->getType()==End_) {
 		return std::make_unique<Line>();
 	}
-	if(token->getType()==If_) {
-		auto val = getIf();
-		return val ? std::make_unique<IfNode>(std::move(*val)) : nullptr;
+	prevTokens.push(std::move(token));
+	auto valIf = getIf();
+	if(valIf) {
+		return std::make_unique<IfNode>(std::move(*valIf));
 	}
-	if(token->getType()==While_) {
-		auto val = getWhile();
-		return val ? std::make_unique<WhileNode>(std::move(*val)) : nullptr;
+	auto valWhile = getWhile();
+	if(valWhile) {
+		return std::make_unique<WhileNode>(std::move(*valWhile));
 	}
-	if(token->getType()==For_) {
-		auto val = getFor();
-		return val ? std::make_unique<ForNode>(std::move(*val)) : nullptr;
+	auto valFor = getFor();
+	if(valFor) {
+		return std::make_unique<ForNode>(std::move(*valFor));
 	}
-	if(token->getType()==BlockBegin_) {
-		auto val = getBlock();
-		return val ? std::make_unique<Block>(std::move(*val)) : nullptr;
+	auto valBlock = getBlock();
+	if(valBlock) {
+		return std::make_unique<Block>(std::move(*valBlock));
 	}
-	if(token->getType()==Return_) {
-		auto token2 = getScanerToken({Id_,ParBegin_,End_,NegOp_,Minus_,Add_,MultOp_,RelOp_,Logic_,Conversion_,String_,Number_});
-		if(!token2)
-			return std::make_unique<ReturnNode>();
-		if(wasWrongType) {
-			//assume that there should be end of line
-			prevToken=std::move(token2);
-			return std::make_unique<ReturnNode>();
+	auto valInit = getLocalInit();
+	if(valInit) {
+		return std::make_unique<InitNode>(std::move(*valInit));
+	}
+	auto valAssign = getAssign();
+	if(valAssign) {
+		return std::make_unique<AssignNode>(std::move(*valAssign));
+	}
+	auto valFunCall = getFunCall();
+	if(valFunCall) {
+		//we have to get end of line
+		token = getNextToken();
+		if(token->getType()!=End_) {
+			checkToken(token,End_);
 		}
-		if(token2->getType()==End_)
-			return std::make_unique<ReturnNode>();
-		auto expr = getExpression(End_,std::move(token2));
-		if(!expr.first)
-			return std::make_unique<ReturnNode>();
-		ReturnNode node;
-		node.returnedValue=std::move(expr.first);
-		return std::make_unique<ReturnNode>(std::move(node));
+		return std::make_unique<FunCall>(std::move(*valFunCall));
 	}
-	if(token->getType() == TypeName_) {
-		auto val = getInit(std::unique_ptr<TypeName>(dynamic_cast<TypeName*>(token.release())));
-		return val ? std::make_unique<InitNode>(std::move(*val)) : nullptr;
+	auto retCall = getReturn();
+	if(retCall) {
+		return std::make_unique<ReturnNode>(std::move(*retCall));
 	}
-	if(token->getType()==Id_) {
-		auto token2 = getScanerToken({Assign_,ParBegin_});
-		if(!token2)
-			return nullptr;
-		if(wasWrongType) //assume empty line
-			return nullptr;
-		if(token2->getType()==Assign_) {
-			std::vector<std::unique_ptr<Token> > assignTokens;
-			assignTokens.emplace_back(std::move(token));
-			assignTokens.emplace_back(std::move(token2));
-			auto assignNode = getAssign(std::move(assignTokens));
-			if(!assignNode)
-				return nullptr;
-			return std::make_unique<AssignNode>(std::move(*assignNode));
-		}
-		if(token2->getType()==ParBegin_) {
-			auto val = getFunCall(std::unique_ptr<IdToken>(dynamic_cast<IdToken*>(token.release())));
-			return val ? std::make_unique<FunCall>(std::move(*val)) : nullptr;
-		}
+	auto loopMod = getLoopMod();
+	if(loopMod) {
+		return std::make_unique<LoopModLine>(std::move(*loopMod));
 	}
+	token = getNextToken();
+	ErrorHandler::addError(ErrorPlace::ParserError, ErrorToken(token->getLine(), token->getColumn(), unexpectedCharacter));
+	prevTokens.push(std::move(token));
 	return nullptr; //no recognized type of line
 }
 
-std::optional<IfNode> Parser::getIf() {
-	//if↓
-	auto token = getScanerToken(ParBegin_);
-	if(!token)
+std::optional<ReturnNode> Parser::getReturn() {
+	auto retToken = getNextToken();
+	ErrorType errorType;
+	if ((errorType = checkToken(retToken, Return_)) != noError) {
+		prevTokens.push(std::move(retToken));
 		return std::nullopt;
-	if(wasWrongType) { //assume that there is ParBegin
-		prevToken=std::move(token);
 	}
-	auto expr = getExpression(ParEnd_);
-	IfNode node;
-	if(!expr.first)
+	//now we're sure that this is Return
+	auto token2 = getNextToken();
+	if(token2->getType()==End_)
+		return ReturnNode();
+	prevTokens.push(std::move(token2));
+	auto expr = getExpression();
+	if (!expr.first) {
+		ErrorHandler::addError(ErrorPlace::ParserError, ErrorToken(expr.second->getLine(), expr.second->getColumn(), unexpectedCharacter));
+		auto* expres=new NumberExpression();
+		expres->value=(int64_t)0;
+		expr.first.reset(expres);
+	}
+	if(expr.second->getType()!=End_) {
+		addError(expr.second,wrongToken,{End_});
+		prevTokens.push(std::move(expr.second));
+	}
+	ReturnNode node;
+	node.returnedValue=std::move(expr.first);
+	return node;
+}
+
+std::optional<IfNode> Parser::getIf() {
+	auto ifToken = getNextToken();
+	ErrorType errorType;
+	if ((errorType=checkToken(ifToken, If_))!=noError) {
+		prevTokens.push(std::move(ifToken));
 		return std::nullopt;
+	}
+	//we are sure now that there should be if
+	auto token = getNextToken();
+	if((errorType=checkToken(token, ParBegin_))!=noError) {//assume that there is ParBegin
+		prevTokens.push(std::move(token));
+	}
+	auto expr = getExpression();
+	if (!expr.first) {
+		ErrorHandler::addError(ErrorPlace::ParserError, ErrorToken(expr.second->getLine(), expr.second->getColumn(), unexpectedCharacter));
+		auto* expres=new NumberExpression();
+		expres->value=(int64_t)0;
+		expr.first.reset(expres);
+	}
+	if(expr.second->getType()!=ParEnd_) { //assume that ther is ParEnd
+		addError(expr.second,wrongToken,{ParEnd_});
+		prevTokens.push(std::move(expr.second));
+	}
+	IfNode node;
+	node.condition=std::move(expr.first);
 	auto block = getLine();
 	if(block) {
 		if(typeid(*block)==typeid(Block))
@@ -169,21 +209,20 @@ std::optional<IfNode> Parser::getIf() {
 		else
 			node.stat.lines.emplace_back(std::move(block));
 	}
-	else
-		node.stat=Block();
-	node.condition=std::move(expr.first);
-	auto token3 = getScanerToken(anyToken);
-	if(!token3)
-		return node;
+	else {
+		ErrorHandler::addError(ErrorPlace::ParserError, ErrorToken(expr.second->getLine(), expr.second->getColumn(), wrongToken));
+		node.stat = Block();
+	}
+	auto token3 = getNextToken();
 	if(token3->getType()==Else_) {
 		auto elseBlock = getLine();
 		if(elseBlock) {
 			if(typeid(*elseBlock)==typeid(Block))
-				node.elseStat = std::move(*dynamic_cast<Block*>(elseBlock.get()));
+				node.elseStat = std::move(*dynamic_cast<Block*>(elseBlock.release()));
 			else {
-				Block block;
-				block.lines.emplace_back(std::move(elseBlock));
-				node.elseStat=block;
+				Block block2;
+				block2.lines.emplace_back(std::move(elseBlock));
+				node.elseStat=block2;
 			}
 		}
 		else
@@ -191,22 +230,36 @@ std::optional<IfNode> Parser::getIf() {
 		return node;
 	}
 	else {
-		prevToken = std::move(token3);
+		prevTokens.push(std::move(token3));
 		node.elseStat=std::nullopt;
 	}
 	return node;
 }
 
 std::optional<WhileNode> Parser::getWhile() {
-	//while↓
-	auto token = getScanerToken(ParBegin_);
-	if(!token)
+	auto ifToken = getNextToken();
+	ErrorType errorType;
+	if ((errorType=checkToken(ifToken, While_))!=noError) {
+		prevTokens.push(std::move(ifToken));
 		return std::nullopt;
-	if(wasWrongType) //assume that there is ParBegin
-		prevToken=std::move(token);
-	auto expr = getExpression(ParEnd_);
-	if(!expr.first)
-		return std::nullopt;
+	}
+	//we are sure now that there should be while
+	auto token = getNextToken();
+	if((errorType=checkToken(token, ParBegin_))!=noError) {//assume that there is ParBegin
+		addError(token, errorType, {ParBegin_});
+		prevTokens.push(std::move(token));
+	}
+	auto expr = getExpression();
+	if (!expr.first) {
+		ErrorHandler::addError(ErrorPlace::ParserError, ErrorToken(expr.second->getLine(), expr.second->getColumn(), unexpectedCharacter));
+		auto* expres=new NumberExpression();
+		expres->value=(int64_t)0;
+		expr.first.reset(expres);
+	}
+	if(expr.second->getType()!=ParEnd_) {
+		addError(expr.second,wrongToken,{ParEnd_});
+		prevTokens.push(std::move(expr.second));
+	}
 	WhileNode node;
 	auto block = getLine();
 	if(block) {
@@ -222,95 +275,178 @@ std::optional<WhileNode> Parser::getWhile() {
 }
 
 std::optional<ForNode> Parser::getFor() {
-	//for↓
-	auto token = getScanerToken(ParBegin_);
-	if(!token)
+	auto forToken = getNextToken();
+	ErrorType errorType;
+	if ((errorType=checkToken(forToken, For_))!=noError) {
+		prevTokens.push(std::move(forToken));
 		return std::nullopt;
-	if(wasWrongType) //assume that there is ParBegin
-		prevToken=std::move(token);
+	}
+	//we are sure now that there should be for
+	auto token = getNextToken();
+	if ((errorType=checkToken(token, ParBegin_))!=noError) {
+		addError(token, errorType, {ParBegin_});
+		prevTokens.push(std::move(token));
+	}
 	ForNode node;
-	auto token2 = getScanerToken(anyToken);
-	if(!token2)
+	auto token2 = getNextToken();
+	if(token2->getType()==Error_)
 		return std::nullopt;
 	if(token2->getType()!=End_) {
-		std::vector<std::unique_ptr<Token> > tokenTmp;
-		tokenTmp.emplace_back(std::move(token2));
-		auto assignNode = getAssign(std::move(tokenTmp));
+		prevTokens.push(std::move(token2));
+		auto assignNode = getAssign();
 		if(!assignNode)
 			return std::nullopt;
 		node.assignNodePre=std::move(assignNode);
 	}
-	auto expr = getExpression(End_);
-	if (!expr.first)
-		return std::nullopt;
+	auto expr = getExpression();
+	if (!expr.first) {
+		ErrorHandler::addError(ErrorPlace::ParserError, ErrorToken(expr.second->getLine(), expr.second->getColumn(), unexpectedCharacter));
+		auto* expres=new NumberExpression();
+		expres->value=(int64_t)0;
+		expr.first.reset(expres);
+	}
+	if(expr.second->getType()!=End_) {
+		addError(expr.second,wrongToken,{ParEnd_});
+		prevTokens.push(std::move(expr.second));
+	}
 	node.condition = std::move(expr.first);
 
-	auto token3 = getScanerToken(anyToken);
+	auto token3 = getNextToken();
 	if(!token3)
 		return std::nullopt;
 	if(token3->getType()!=ParEnd_) {
-		std::vector<std::unique_ptr<Token> > tokenTmp;
-		tokenTmp.emplace_back(std::move(token3));
-		auto assignNode = getAssign(std::move(tokenTmp));
+		prevTokens.push(std::move(token3));
+		auto assignNode = getAssign(ParEnd_);
 		if(!assignNode)
 			return std::nullopt;
 		node.assignNodeEach=std::move(assignNode);
 	}
-	auto block = getLine();
-	if(block) {
-		if(typeid(*block)==typeid(Block))
-			node.stat = *dynamic_cast<Block*>(block.release());
+	auto line = getLine();
+	if(line) {
+		if(typeid(*line)==typeid(Block))
+			node.stat = *dynamic_cast<Block*>(line.release());
 		else
-			node.stat.lines.emplace_back(std::move(block));
+			node.stat.lines.emplace_back(std::move(line));
 	}
 	else
 		node.stat=Block();
 	return node;
 }
 
-std::optional<InitNode> Parser::getInit(std::unique_ptr<TypeName> typeToken, std::unique_ptr<IdToken> idToken) {
-	//int/double↓
-	InitNode node;
-	std::unique_ptr<Token> token;
-	wasWrongType=false;
-	if(!typeToken)
-		token=getScanerToken(TypeName_);
-	else
-		token=std::move(typeToken);
-	if(!token)
+std::optional<InitNode> Parser::getLocalInit() {
+	auto token = getNextToken();
+	ErrorType errorType = checkToken(token, TypeName_);
+	if(errorType!=noError) {
+		prevTokens.push(std::move(token));
 		return std::nullopt;
-	if(wasWrongType) //assume that double is declared
-		token=std::make_unique<TypeName>(-1,-1,TypeNameType::doubleType);
-	node.type=*dynamic_cast<TypeName*>(token.get());
-	while(token && token->getType()!=End_) {
-		if(idToken==nullptr) {
-			auto tmpToken = getScanerToken(Id_);
-			if (!tmpToken)
-				return std::nullopt;
-			if (!wasWrongType)
-				idToken = std::unique_ptr<IdToken>(dynamic_cast<IdToken*>(tmpToken.release()));
+	}
+	std::unique_ptr<Token> token2;
+	InitNode node;
+	node.type=(TypeType)dynamic_cast<TypeName *>(token.get())->getSubtype();
+	while(token->getType()!=End_ && token->getType()!=EndOfFile) {
+		auto token3 = std::move(token);
+		token2 = getNextToken();
+		errorType=checkToken(token2,Id_);
+		if(errorType!=noError) {
+			addError(token2, errorType, {Id_});
+			prevTokens.push(std::move(token2));
+			break;
 		}
-		token=getScanerToken({End_, Comma_, Assign_});
-		if(!token)
-			return std::nullopt;
-		if(wasWrongType) { //assume that there should be End
-			prevToken=std::move(token);
-			token=std::make_unique<Token>(End_,-1,-1);
+		token = getNextToken();
+		errorType=checkToken(token,{End_, Comma_, Assign_});
+		if(errorType!=noError) {
+			addError(token, errorType, {End_, Comma_, Assign_});
+			prevTokens.push(std::move(token));
+			break;
 		}
 		if(token->getType()!=Assign_)
-			node.vars.emplace_back(*idToken.release(),nullptr);
+			node.vars.emplace_back(dynamic_cast<IdToken*>(token2.get())->getValue(),nullptr);
 		else {
 			auto tokenPtr = dynamic_cast<Assign*>(token.get());
 			if(tokenPtr->getSubtype()!=AssignType::assign) {
 				ErrorHandler::addError(ScanerError,ErrorToken(tokenPtr->getLine(), tokenPtr->getColumn(),tokenPtr->getSubtype()));
 			}
-			auto expr = getExpression({Comma_,End_});
-			if(!expr.first)
-				return std::nullopt;
-			node.vars.emplace_back(*idToken.release(),std::move(expr.first));
-			std::vector allowedTokensHere = anyToken;
-			allowedTokensHere.push_back(_eof);
-			token=std::move(prevToken);
+			auto expr = getExpression();
+			if (!expr.first) {
+				break;
+			}
+			if(checkToken(expr.second,{Comma_, End_})!=noError) {
+				addError(expr.second,wrongToken,{Comma_, End_});
+			}
+			prevTokens.push(std::move(expr.second));
+			node.vars.emplace_back(dynamic_cast<IdToken*>(token2.get())->getValue(),std::move(expr.first));
+			token=getNextToken();
+		}
+	}
+	return node;
+}
+
+std::optional<InitNode> Parser::getGlobalInit(TypeType type, const std::string& id) {
+	//it was checked before in getGlobalNode() that it can't be function
+	ErrorType errorType;
+	std::unique_ptr<Token> token2;
+	InitNode node;
+	node.type=type;
+	//node.=id;
+	auto token = getNextToken();
+	if(token->getType()==Assign_) {
+		//make assign (needed to be in right position for while
+		auto tokenPtr = dynamic_cast<Assign*>(token.get());
+		if(tokenPtr->getSubtype()!=AssignType::assign) {
+			ErrorHandler::addError(ScanerError,ErrorToken(tokenPtr->getLine(), tokenPtr->getColumn(),tokenPtr->getSubtype()));
+		}
+		auto expr = getExpression();
+		if (!expr.first) {
+			addError(expr.second,emptyExpression,{});
+			auto* expres=new NumberExpression();
+			expres->value=(int64_t)0;
+			expr.first.reset(expres);
+		}
+		if(checkToken(expr.second,{Comma_, End_})!=noError) {
+			addError(expr.second,wrongToken,{Comma_, End_});
+		}
+		token=std::move(expr.second);
+		node.vars.emplace_back(id, std::move(expr.first));
+	}
+	else
+		node.vars.emplace_back(id,nullptr);
+
+	while(token->getType()!=End_ && token->getType()!=EndOfFile) {
+		auto token3 = std::move(token);
+		token2 = getNextToken();
+		errorType=checkToken(token2,Id_);
+		if(errorType!=noError) {
+			addError(token2, errorType, {Id_});
+			prevTokens.push(std::move(token2));
+			break;
+		}
+		token = getNextToken();
+		errorType=checkToken(token,{End_, Comma_, Assign_});
+		if(errorType!=noError) {
+			addError(token, errorType, {End_, Comma_, Assign_});
+			prevTokens.push(std::move(token));
+			break;
+		}
+		if(token->getType()!=Assign_)
+			node.vars.emplace_back(dynamic_cast<IdToken*>(token2.get())->getValue(),nullptr);
+		else {
+			auto tokenPtr = dynamic_cast<Assign*>(token.get());
+			if(tokenPtr->getSubtype()!=AssignType::assign) {
+				ErrorHandler::addError(ScanerError,ErrorToken(tokenPtr->getLine(), tokenPtr->getColumn(),tokenPtr->getSubtype()));
+			}
+			auto expr = getExpression();
+			if (!expr.first) {
+				addError(expr.second,emptyExpression,{});
+				auto* expres=new NumberExpression();
+				expres->value=(int64_t)0;
+				expr.first.reset(expres);
+			}
+			if(checkToken(expr.second,{Comma_, End_})!=noError) {
+				addError(expr.second,wrongToken,{Comma_, End_});
+			}
+			prevTokens.push(std::move(expr.second));
+			node.vars.emplace_back(dynamic_cast<IdToken*>(token2.get())->getValue(),std::move(expr.first));
+			token=getNextToken();
 		}
 	}
 	return node;
@@ -332,6 +468,10 @@ std::vector<TokenType> exprTokenTypes = {
 };
 
 int getPriority(const std::pair<std::unique_ptr<Token>, bool>& val) {
+	if(!val.first)
+		return 9999;
+	if(val.first->getType()==ParBegin_)
+		return 9999;
 	if(val.second)
 		return 0;
 	std::map<TokenType, int> opTokenPriorities = {
@@ -343,8 +483,6 @@ int getPriority(const std::pair<std::unique_ptr<Token>, bool>& val) {
 			{Logic_, 5},
 			{RelOp_, 6}
 	};
-	if(!val.first)
-		return 9999;
 	auto it = opTokenPriorities.find(val.first->getType());
 	if(it==opTokenPriorities.end())
 		return 9000;
@@ -358,13 +496,9 @@ std::vector<TokenType> exitTokenTypes = {
 		//BlockEnd_=19u,
 };
 
-std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpression(const std::vector<TokenType>& allowedEnds, std::unique_ptr<Token> firstToken) {
-	//TODO
+std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpression() {
 	std::unique_ptr<Token> token;
-	if(firstToken)
-		token=std::move(firstToken);
-	else
-		token= getScanerToken(anyToken);
+	token=getNextToken();
 	//bool is true for unary operators
 	typedef std::variant<std::unique_ptr<Expression>, std::pair<std::unique_ptr<Token>, bool> > QueueObj;
 	std::queue<QueueObj> exit;
@@ -372,66 +506,64 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 	bool isMinusUnary=true;
 	//convert to Reverse Polish Notation
 	while(token && std::find(exprTokenTypes.begin(),exprTokenTypes.end(),token->getType())!=exprTokenTypes.end()) {
-		if(!token)
-			break;
 		if(token->getType()==String_) {
 			std::unique_ptr<StringExpression> strExpr(new StringExpression());
-			strExpr->token=*dynamic_cast<StringToken*>(token.release());
+			strExpr->value=dynamic_cast<StringToken*>(token.get())->getValue();
 			exit.push(std::unique_ptr<StringExpression>(strExpr.release()));
 			isMinusUnary=false;
-			token = getScanerToken(anyToken);
+			token=getNextToken();
 			continue;
 		}
 		else if (token->getType()==Number_) {
 			std::unique_ptr<NumberExpression> nrExpr(new NumberExpression());
-			nrExpr->token=*dynamic_cast<Number*>(token.release());
+			nrExpr->value=dynamic_cast<Number*>(token.get())->getValue();
 			exit.push(std::unique_ptr<NumberExpression>(nrExpr.release()));
 			isMinusUnary=false;
-			token = getScanerToken(anyToken);
+			token=getNextToken();
 			continue;
 		}
 		else if(token->getType()==Id_) {
-			auto token2 = getScanerToken(anyToken);
+			//auto token2 = getNextToken();
 			isMinusUnary=false;
-			if(!token2)
-				break;
-			//check if variable or function call
-			if(token2->getType()==ParBegin_) {
-				auto fun = getFunCall(std::unique_ptr<IdToken>(dynamic_cast<IdToken*>(token.release())));
-				if(!fun)
-					break;
+			/*if(token2->getType()==EndOfFile || token2->getType()==Error_)
+				break;*/
+			prevTokens.push(std::move(token));
+			auto fun = getFunCall();
+			if(fun) {
+				//function call
 				std::unique_ptr<FunCallExpression> fnExpr(new FunCallExpression());
-				fnExpr->token=std::unique_ptr<FunCall>(dynamic_cast<FunCall*>(token.release()));
+				fnExpr->funCall=std::make_unique<FunCall>(std::move(*fun));
 				exit.emplace(std::move(fnExpr));
 			}
-			else { //variable → to exit
-				IdExpression* idExpr = new IdExpression();
-				idExpr->token=*dynamic_cast<IdToken*>(token.release());
+			else {
+				token=getNextToken();
+				//id expression
+				auto* idExpr = new IdExpression();
+				idExpr->value=dynamic_cast<IdToken*>(token.get())->getValue();
 				exit.push(std::unique_ptr<IdExpression>(idExpr));
-				prevToken=std::move(token2);
 			}
 		}
 		else if(token->getType()==ParBegin_) {
 			isMinusUnary=true;
-			auto token2 = getScanerToken(anyToken);
-			if(!token2)
+			auto token2 = getNextToken();
+			if(token2->getType()==Error_)
 				break;
 			if(token2->getType()==TypeName_) {
 				//create conversion token
-				auto token3 = getScanerToken(ParEnd_);
-				if(!token3)
-					break;
-				if(wasWrongType) {
-					prevToken=std::move(token3);
+				auto token3 = getNextToken();
+				ErrorType token3Error = checkToken(token3, ParEnd_);
+				if(token3Error!=noError) {
+					addError(token3,token3Error, {ParEnd_});
+					prevTokens.push(std::move(token3));
 				}
 				auto token22 = std::unique_ptr<TypeName>(dynamic_cast<TypeName*>(token2.release()));
 				if(token22->getSubtype()==TypeNameType::intType)
-					prevToken=std::make_unique<Conversion>(token->getLine(),token->getColumn(),toInt);
+					prevTokens.push(std::make_unique<Conversion>(token->getLine(),token->getColumn(),toInt));
 				else
-					prevToken=std::make_unique<Conversion>(token->getLine(),token->getColumn(),toDouble);
+					prevTokens.push(std::make_unique<Conversion>(token->getLine(),token->getColumn(),toDouble));
 			}
 			else {
-				prevToken = std::move(token2);
+				prevTokens.push(std::move(token2));
 				stack.emplace(std::move(token),true);
 			}
 		}
@@ -445,7 +577,9 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 				stack.pop();
 			}
 			if(stack.empty()) {
-				ErrorHandler::addError(ParserError,{token->getLine(),token->getColumn(),unexpectedParEnd});
+				//it means that function finishes with ParEnd
+				break;
+				//ErrorHandler::addError(ParserError,{token->getLine(),token->getColumn(),unexpectedParEnd});
 			}
 			else
 				stack.pop();
@@ -467,7 +601,7 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 			stack.emplace(std::move(tmpObj));
 			//operator
 		}
-		token = getScanerToken(anyToken);
+		token = getNextToken();
 		//token
 	}
 	while(!stack.empty()) {
@@ -479,10 +613,6 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 		else
 			exit.emplace(std::move(top));
 		stack.pop();
-	}
-	if((std::find(allowedEnds.begin(),allowedEnds.end(),token->getType())==allowedEnds.end())) {
-		ErrorHandler::addError(ParserError, ErrorToken(token->getLine(),token->getColumn(),token->getType(),allowedEnds[0]));
-		prevToken=std::make_unique<Token>(*token);
 	}
 	//create expression tree from ReversePolishNotation
 	std::stack<std::unique_ptr<Expression> > calcStack;
@@ -506,7 +636,7 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 					auto front3 = std::move(calcStack.top());
 					calcStack.pop();
 					newExpr->expression1=std::move(front3);
-					newExpr->expression2.emplace(std::move(front2));
+					newExpr->expression2=std::move(front2);
 				}
 				else {
 					newExpr->expression2=std::move(front2);
@@ -516,7 +646,31 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 			else {
 				newExpr->expression1=std::move(front2);
 			}
-			newExpr->op=std::move(frontC.first);
+			switch(frontC.first->getType()) {
+			case NegOp_:
+				newExpr->op=negation;
+				break;
+			case Minus_:
+				newExpr->op=minus;
+				break;
+			case Add_:
+				newExpr->op=add;
+				break;
+			case MultOp_:
+				newExpr->op=(OperatorType)(mult+dynamic_cast<MultOp*>(frontC.first.get())->getSubtype());
+				break;
+			case RelOp_:
+				newExpr->op=(OperatorType)(eq+dynamic_cast<RelOp*>(frontC.first.get())->getSubtype());
+				break;
+			case Logic_:
+				newExpr->op=(OperatorType)(Or+dynamic_cast<LogicOp*>(frontC.first.get())->getSubtype());
+				break;
+			case Conversion_:
+				newExpr->op=(OperatorType)(toIntConversion+dynamic_cast<Conversion*>(frontC.first.get())->getSubtype());
+				break;
+			default:
+				newExpr->op=none;
+			}
 			calcStack.emplace(std::move(newExpr));
 		}
 	}
@@ -525,20 +679,37 @@ std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > Parser::getExpre
 	return {std::move(calcStack.top()),std::move(token)};
 }
 
-std::optional<FunCall> Parser::getFunCall(std::unique_ptr<IdToken> funName) {
-	//funName(↓
+std::optional<FunCall> Parser::getFunCall() {
+	auto funName = getNextToken();
+	ErrorType errorType;
+	if ((errorType=checkToken(funName, Id_))!=noError) {
+		prevTokens.push(std::move(funName));
+		return std::nullopt;
+	}
+	auto parBeginToken = getNextToken();
+	if ((errorType=checkToken(parBeginToken, ParBegin_))!=noError) {
+		prevTokens.push(std::move(parBeginToken));
+		prevTokens.push(std::move(funName));
+		return std::nullopt;
+	}
+	//now we are sure that this is function call
 	FunCall call;
-	call.name=std::move(funName);
-	auto token = getScanerToken(anyToken);
+	call.name=dynamic_cast<IdToken*>(funName.get())->getValue();
+	auto token = getNextToken();
 	if(!token)
 		return std::nullopt;
 	while(token->getType()!=ParEnd_) {
-		auto expr = getExpression({Comma_,ParEnd_},std::move(token));
-		if(!expr.first) //assume that there is ParEnd
-			return call;
-		if(wasWrongType) {//assume that there is ParEnd
-			prevToken=std::move(expr.second);
-			return call;
+		prevTokens.push(std::move(token));
+		auto expr = getExpression();
+		if (!expr.first) {
+			addError(expr.second,emptyExpression,{});
+			auto* expres=new NumberExpression();
+			expres->value=(int64_t)0;
+			expr.first.reset(expres);
+		}
+		if(checkToken(expr.second,{Comma_, ParEnd_})!=noError) {
+			addError(expr.second,wrongToken,{Comma_, ParEnd_});
+			prevTokens.push(std::move(expr.second));
 		}
 		token=std::move(expr.second);
 		call.params.emplace_back(std::move(expr.first));
@@ -546,85 +717,10 @@ std::optional<FunCall> Parser::getFunCall(std::unique_ptr<IdToken> funName) {
 	return call;
 }
 
-bool Parser::parseNext() {
-	auto retTypeToken = getScanerToken({TypeName_,Void_,_eof, End_});
-	if(!retTypeToken)
-		return ErrorHandler::getErrorSize()!=0;
-	if(retTypeToken->getType()==End_) {
-		return EXIT_SUCCESS;
-	}
-	if(wasWrongType) {
-		//ignore
-		return EXIT_FAILURE;
-	}
-	auto funcName = getScanerToken(Id_);
-	if(!funcName)
-		return EXIT_FAILURE;
-	if(wasWrongType) {
-		funcName=nullptr;
-	}
-	auto token3 = getScanerToken({ParBegin_, Comma_, End_,Assign_});
-	if(!token3)
-		return EXIT_FAILURE;
-	if(wasWrongType) { //assume that this is function
-		prevToken=std::move(token3);
-		token3=std::make_unique<Token>(ParBegin_,-1,-1);
-	}
-	if(token3->getType()==ParBegin_) {
-		//parse function
-		FunctionNode func;
-		if(funcName)
-			func.id=*(dynamic_cast<IdToken *>(funcName.release()));
-		if(retTypeToken->getType()==TypeName_)
-			func.returnedType = *(dynamic_cast<TypeName*>(retTypeToken.get()));
-		else
-			func.returnedType = *retTypeToken;
-		//get parameters
-		std::unique_ptr<Token> token;
-		while ((token=getScanerToken({TypeName_, ParEnd_})) && token->getType() == TypeName_) {
-			std::unique_ptr<Token> name = getScanerToken(Id_);
-			if (!name) {
-				return EXIT_FAILURE;
-			}
-			if(wasWrongType) {
-				prevToken = std::move(name);
-				name = std::make_unique<IdToken>(-1,-1,"");
-			}
-			func.parameters.emplace_back(*dynamic_cast<TypeName *>(token.get()),
-			                             *dynamic_cast<IdToken *>(name.get()));
-		}
-		if (!token)
-			return EXIT_FAILURE;
-		if(token->getType()!=ParEnd_) {
-			ErrorHandler::addError(ParserError, ErrorToken(token->getLine(),token->getColumn(),token->getType(),ParEnd_));
-		}
-		auto block = getBlock();
-		if (!block)
-			return EXIT_FAILURE;
-		func.block = *block;
-		functions.emplace_back(std::move(func));
-		return EXIT_SUCCESS;
-	}
-	else {
-		//parse global variable
-		std::vector<std::unique_ptr<Token> > tokens;
-		if(retTypeToken->getType()==Void_) {
-			ErrorHandler::addError(ParserError,ErrorToken(retTypeToken->getLine(),retTypeToken->getColumn(),retTypeToken->getType(),TypeName_));
-			return EXIT_FAILURE;
-		}
-		prevToken = std::move(token3);
-		auto node = getInit(std::unique_ptr<TypeName>(dynamic_cast<TypeName *>(retTypeToken.release())),
-		                    funcName ? std::unique_ptr<IdToken>(dynamic_cast<IdToken *>(funcName.release())) : std::make_unique<IdToken>(-1,-1,""));
-		if(!node)
-			return EXIT_FAILURE;
-		globalVars.push_back(*node);
-		return EXIT_SUCCESS;
-	}
-}
 
 SyntaxTree Parser::parse() {
 	//create function
-	while(!scaner.hasEnded() && parseNext()==EXIT_SUCCESS)
+	while(findGlobalNode())
 		;
 	SyntaxTree tree;
 	tree.globalVars=std::move(globalVars);
@@ -634,44 +730,132 @@ SyntaxTree Parser::parse() {
 	return tree;
 }
 
-std::optional<AssignNode> Parser::getAssign(std::vector<std::unique_ptr<Token>> tokens) {
+std::optional<AssignNode> Parser::getAssign(TokenType endType) {
 	//id assignNode statement
 	AssignNode assignNode;
 	std::unique_ptr<Token> assignToken1, assignToken2;
-	if(!tokens.empty()) {
-		assignToken1 = std::move(tokens.back());
-		tokens.pop_back();
-	}
-	else
-		assignToken1 = getScanerToken(Id_);
-	if (!assignToken1)
+	assignToken1 = getNextToken();
+	ErrorType errorType;
+	if ((errorType=checkToken(assignToken1, Id_))!=noError) {
+		prevTokens.push(std::move(assignToken1));
 		return std::nullopt;
-	if(wasWrongType) {
-		prevToken = std::move(assignToken1);
-		assignToken1 = std::make_unique<IdToken>(-1,-1,"");
 	}
-	assignNode.id = std::unique_ptr<IdToken>(dynamic_cast<IdToken *>(assignToken1.release()));
-
-	if(!tokens.empty()) {
-		assignToken2 = std::move(tokens.back());
-		tokens.pop_back();
-	}
-	else
-		assignToken2 = getScanerToken(Assign_);
-	if (!assignToken2)
+	assignNode.id = dynamic_cast<IdToken *>(assignToken1.get())->getValue();
+	assignToken2 = getNextToken();
+	if ((errorType=checkToken(assignToken2, Assign_))!=noError) {
+		prevTokens.push(std::move(assignToken2));
+		prevTokens.push(std::move(assignToken1));
 		return std::nullopt;
-	if(wasWrongType) {
-		prevToken = std::move(assignToken1);
-		assignToken1 = std::make_unique<Assign>(-1,-1,AssignType::assign);
 	}
-	assignNode.assign = std::unique_ptr<Assign>(dynamic_cast<Assign *>(assignToken2.release()));
+	assignNode.type = (AssignNodeType)dynamic_cast<Assign *>(assignToken2.get())->getSubtype();
 
-
-	auto expr = getExpression(End_);
+	auto expr = getExpression();
 	if (!expr.first) {
+		addError(expr.second,emptyExpression,{});
 		return std::nullopt;
+	}
+	if(expr.second->getType()!=endType) {
+		addError(expr.second,wrongToken,{endType});
+		prevTokens.push(std::move(expr.second));
 	}
 	assignNode.expression = std::move(expr.first);
-
 	return assignNode;
+}
+
+std::optional<FunctionNode> Parser::getFunction(TypeType type, const std::string& id) {
+	auto params = getParameters();
+	if(!params.first) {
+		return std::nullopt;
+	}
+	//(_return_type | void) id Parameters Block
+	FunctionNode func;
+	func.returnedType = type;
+	func.name=id;
+	func.parameters = std::move(params.second);
+	auto block = getBlock();
+	if (!block)
+		block=Block();
+	func.block = *block;
+	return func;
+}
+
+std::pair<bool, std::vector<Parameter> > Parser::getParameters() {
+	auto beginToken = getNextToken();
+	if(checkToken(beginToken, ParBegin_)!=noError) {
+		prevTokens.push(std::move(beginToken));
+		return {false, {}};
+	}
+	std::unique_ptr<Token> token;
+	std::vector<Parameter> params;
+	ErrorType errorType;
+	while ((token=getNextToken())->getType()!=EndOfFile && checkToken(token, TypeName_)==noError) {
+		std::unique_ptr<Token> name = getNextToken();
+		errorType = checkToken(name, Id_);
+		if (errorType!=noError) {
+			addError(name, errorType, {Id_});
+			if(errorType==wrongToken)
+				prevTokens.push(std::move(name));
+			name = std::make_unique<IdToken>(-1,-1,"");
+		}
+		params.emplace_back((TypeType)(dynamic_cast<TypeName *>(token.get())->getSubtype()),
+		                             dynamic_cast<IdToken *>(name.get())->getValue());
+	}
+	errorType = checkToken(token,ParEnd_);
+	if(token->getType()!=ParEnd_) {
+		addError(token, errorType, {ParEnd_});
+		prevTokens.push(std::move(token));
+	}
+	return {true, params};
+}
+
+std::optional<LoopModLine> Parser::getLoopMod() {
+	auto retToken = getNextToken();
+	ErrorType errorType;
+	if ((errorType = checkToken(retToken, LoopMod_)) != noError) {
+		prevTokens.push(std::move(retToken));
+		return std::nullopt;
+	}
+	auto token = getNextToken();
+	if(token->getType()!=End_) {
+		checkToken(token,End_);
+	}
+	return LoopModLine((LoopModT)dynamic_cast<LoopMod*>(retToken.get())->getSubtype());
+}
+
+bool Parser::findGlobalNode() {
+	bool isVoid = false;
+	TypeType type;
+	ErrorType errorType;
+	auto typeToken = getNextToken();
+	if ((errorType = checkToken(typeToken, {TypeName_, Void_})) != noError) {
+		prevTokens.push(std::move(typeToken));
+		return false;
+	}
+	if(typeToken->getType()==Void_) {
+		isVoid=true;
+		type=void_;
+	}
+	else {
+		type=(TypeType)dynamic_cast<TypeName*>(typeToken.get())->getSubtype();
+	}
+	auto idToken = getNextToken();
+	if ((errorType = checkToken(idToken, Id_)) != noError) {
+		prevTokens.push(std::move(idToken));
+		prevTokens.push(std::move(typeToken));
+		return false;
+	}
+	std::string id = dynamic_cast<IdToken*>(idToken.get())->getValue();
+	auto func = getFunction(type, id);
+	if(func) {
+		functions.push_back(std::move(*func));
+		return true;
+	}
+	if(!isVoid) {
+		auto globalInit = getGlobalInit(type, id);
+		if (globalInit) {
+			globalVars.push_back(std::move(*globalInit));
+			return true;
+		}
+	}
+	return false;
 }
