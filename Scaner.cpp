@@ -38,9 +38,7 @@ std::unique_ptr<Token> Scaner::processString() {
 	int l=line, c=col;
 	std::string val;
 	getNextChar();
-	while(actualChar!='\"') {
-		if(val.length()>=Util::maxLength)
-			return std::unique_ptr<Token>(new ErrorToken(l,c,internal,String_,ErrorType::overflow));
+	while(Util::isStringCompatible(actualChar) && val.length()<Util::maxLength) {
 		if(actualChar=='\\') {
 			getNextChar();
 			if(stringSpecialChars.find(actualChar)!=stringSpecialChars.end())
@@ -48,15 +46,17 @@ std::unique_ptr<Token> Scaner::processString() {
 			else
 				return std::unique_ptr<Token>(new ErrorToken(l,c,internal,String_));
 		}
-		else if (Util::isStringCompatible(actualChar)) {
+		else
 			val += actualChar;
-		}
-		else if(actualChar!='\"') {
-			//error
-			val += actualChar;
-			return std::unique_ptr<Token>(new ErrorToken(l,c,internal,String_));
-		}
+		actualChar='\0';
 		getNextChar();
+	}
+	if(val.length()>=Util::maxLength)
+		return std::unique_ptr<Token>(new ErrorToken(l,c,internal,String_,ErrorType::overflow));
+	if(actualChar!='\"') {
+		//error
+		val += actualChar;
+		return std::unique_ptr<Token>(new ErrorToken(l,c,internal,String_));
 	}
 	actualChar='\0';
 	return std::make_unique<StringToken>(l, c-1, val);
@@ -100,18 +100,15 @@ std::unique_ptr<Token> Scaner::checkSpecialIds(int l, int c, const std::string& 
 std::unique_ptr<Token> Scaner::processId() {
 	int l=line;
 	int c=col-1;
-	std::string id={actualChar};
-	while(actualChar!=eof) {
+	std::string id;
+	while(actualChar!=eof && (Util::isLetter(actualChar) || Util::isDigit(actualChar)) && id.length()<Util::maxLength) {
+		id += actualChar;
 		getNextChar();
-		if(id.length()>=Util::maxLength)
-			return std::unique_ptr<Token>(new ErrorToken(l,c,internal,Id_,ErrorType::overflow));
-		if (Util::isLetter(actualChar) || Util::isDigit(actualChar))
-			id += actualChar;
-		else if (Util::isDefined(actualChar) || Util::isWhite(actualChar) || actualChar==eof)
-			break;
-		else
-			return std::unique_ptr<Token>(new ErrorToken(l,c,internal,Id_));
 	}
+	if(!Util::isDefined(actualChar) && !Util::isWhite(actualChar) && actualChar!=eof)
+		return std::unique_ptr<Token>(new ErrorToken(l,c,internal,Id_));
+	if(id.length()>=Util::maxLength)
+		return std::unique_ptr<Token>(new ErrorToken(l,c,internal,Id_,ErrorType::overflow));
 	return checkSpecialIds(l,c,id);
 }
 

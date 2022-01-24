@@ -36,19 +36,20 @@ class Parser {
 	std::optional<IfNode> getIf();
 	std::optional<WhileNode> getWhile();
 	std::optional<ForNode> getFor();
-	std::optional<FunctionNode> getFunction();
+	std::optional<FunctionNode> getFunction(TypeType type, const std::string& id);
 	std::pair<bool, std::vector<Parameter> > getParameters();
 	std::optional<FunCall> getFunCall();
-	std::optional<InitNode> getInit();
+	std::optional<InitNode> getLocalInit();
+	std::optional<InitNode> getGlobalInit(TypeType type, const std::string& id);
 	std::optional<ReturnNode> getReturn();
 	std::pair<std::unique_ptr<Expression>, std::unique_ptr<Token> > getExpression();
+	bool findGlobalNode();
 	std::unique_ptr<Token> getNextToken();
 	std::optional<LoopModLine> getLoopMod();
 	void addError(const std::unique_ptr<Token>& token, ErrorType type, std::vector<TokenType> allowedTypes={});
 	ErrorType checkToken(const std::unique_ptr<Token>& token, std::vector<TokenType> allowedTypes);
 	ErrorType checkToken(const std::unique_ptr<Token>& token, TokenType type) {return checkToken(token, std::vector({type}));}
 public:
-	ParserState parseNext();
 	explicit Parser(Scaner& scaner);
 	explicit Parser(Scaner&& scaner);
 	SyntaxTree parse();

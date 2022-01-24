@@ -73,6 +73,9 @@ void ErrorHandler::addError(ErrorPlace place, const ErrorToken& token) {
 		case ErrorType::unexpectedParBegin:
 			str+="Unexpected (";
 			break;
+		case ErrorType::emptyExpression:
+			str+="Empty expression";
+			break;
 		case ErrorType::unexpectedEndOfExpression:
 			str+="Unexpected end of expression. Too few arguments of binary operator " + tokenTypeNames[token.getExpected()];
 			break;

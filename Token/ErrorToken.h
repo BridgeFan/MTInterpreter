@@ -20,6 +20,7 @@ enum ErrorType: uint16_t {
 	unexpectedParEnd,
 	unexpectedParBegin,
 	unexpectedEndOfExpression,
+	emptyExpression
 };
 
 class ErrorToken: public Token {

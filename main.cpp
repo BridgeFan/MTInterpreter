@@ -28,11 +28,7 @@ int main(int argc, char** argv) {
 			}
 			code+=line+"\n";
 		}
-		//string
-		std::cout << "Usage:\n";
-		std::cout << "file: provide file path in second parameter\n";
-		std::cout << "str: provide string in second parameter\n";
-		return 0;
+		dataSource = std::make_unique<StringDataSource>(std::move(code));
 	}
 	else {
 		dataSource = std::make_unique<FileDataSource>(argv[1]);
@@ -40,14 +36,16 @@ int main(int argc, char** argv) {
 	ErrorHandler::setLimit(100);
 	Scaner scaner(std::move(dataSource));
 	Parser parser(scaner);
-	bool wereParserErrors = ErrorHandler::getErrorSize()>0;
 	SyntaxTree tree = parser.parse();
+	bool wereParserErrors = ErrorHandler::getErrorSize()>0;
+	if(wereParserErrors) {
+		std::cerr << "An error occured parsing file\n";
+		ErrorHandler::showErrors(std::cout, std::cerr);
+		return 0;
+	}
 	MappedSyntaxTree mapped;
 	if(!mapped.mapTree(tree)) {
-		if(wereParserErrors)
-			std::cerr << "An error occured parsing file\n";
-		else
-			std::cerr << "An error occured mapping syntax tree\n";
+		std::cerr << "An error occured mapping syntax tree\n";
 		ErrorHandler::showErrors(std::cout, std::cerr);
 		return 0;
 	}
