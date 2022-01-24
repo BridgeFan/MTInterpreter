@@ -102,7 +102,7 @@ InterpreterValue getBinaryOperationValue(const InterpreterValue& value1, const I
 		case divi:
 			return std::visit(BinaryOperation("/",
 					[](int64_t a, int64_t b){if(b==0) throw std::runtime_error("Division of int by zero"); else return a/b;},
-					[](double a, double b){if(b==0) throw std::runtime_error("Division of double by zero"); else return a/b;}
+					[](double a, double b){if(b==0.0) throw std::runtime_error("Division of double by zero"); else return a/b;}
 			), value1, value2);
 		case mod:
 			return std::visit(BinaryOperation("%",

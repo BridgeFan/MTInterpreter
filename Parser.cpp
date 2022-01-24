@@ -201,6 +201,7 @@ std::optional<IfNode> Parser::getIf() {
 		prevTokens.push(std::move(expr.second));
 	}
 	IfNode node;
+	node.condition=std::move(expr.first);
 	auto block = getLine();
 	if(block) {
 		if(typeid(*block)==typeid(Block))
@@ -208,9 +209,10 @@ std::optional<IfNode> Parser::getIf() {
 		else
 			node.stat.lines.emplace_back(std::move(block));
 	}
-	else
-		node.stat=Block();
-	node.condition=std::move(expr.first);
+	else {
+		ErrorHandler::addError(ErrorPlace::ParserError, ErrorToken(expr.second->getLine(), expr.second->getColumn(), wrongToken));
+		node.stat = Block();
+	}
 	auto token3 = getNextToken();
 	if(token3->getType()==Else_) {
 		auto elseBlock = getLine();
@@ -406,9 +408,9 @@ std::optional<InitNode> Parser::getGlobalInit(TypeType type, const std::string& 
 		token=std::move(expr.second);
 		node.vars.emplace_back(id, std::move(expr.first));
 	}
-	else {
+	else
 		node.vars.emplace_back(id,nullptr);
-	}
+
 	while(token->getType()!=End_ && token->getType()!=EndOfFile) {
 		auto token3 = std::move(token);
 		token2 = getNextToken();
